@@ -4,18 +4,20 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vst-bench-ml"
-version = "0.1.0"
-description = "Deterministic Python orchestration for a separately installed audio-plugin test host"
+version = "0.1.1"
+description = "Auditable audio-plugin dataset generation and offline integrity verification"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Youssef Hemimy" }]
 license = "MIT"
-keywords = ["audio", "plugin", "rendering", "json-rpc"]
-dependencies = [
-    "numpy==2.2.6",
-    "soundfile==0.13.1",
-    "pyloudnorm==0.1.1",
+license-files = ["LICENSE", "NOTICE"]
+keywords = ["audio", "plugin", "dataset", "provenance", "rendering"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Scientific/Engineering",
 ]
+dependencies = ["numpy==2.2.6", "soundfile==0.13.1", "pyloudnorm==0.1.1"]
 
 [project.optional-dependencies]
 dev = ["pytest==8.4.1", "ruff==0.12.0", "hatchling==1.27.0"]
@@ -24,38 +26,19 @@ dev = ["pytest==8.4.1", "ruff==0.12.0", "hatchling==1.27.0"]
 vst-bench-ml = "vst_bench_ml.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/itsuzef/vst-bench-ml"
-Repository = "https://github.com/itsuzef/vst-bench-ml"
-Issues = "https://github.com/itsuzef/vst-bench-ml/issues"
+Homepage = "https://github.com/itsuzef/vst-bench-ml-public"
+Documentation = "https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/README.md"
+Repository = "https://github.com/itsuzef/vst-bench-ml-public"
+Issues = "https://github.com/itsuzef/vst-bench-ml-public/issues"
+Changelog = "https://github.com/itsuzef/vst-bench-ml-public/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/vst_bench_ml"]
-exclude = [
-    "src/vst_bench_ml/pool.py",
-    "src/vst_bench_ml/presets.py",
-    "src/vst_bench_ml/sensitivity.py",
-    "src/vst_bench_ml/spectral.py",
-]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/CITATION.cff",
-    "/LICENSE",
-    "/NOTICE",
-    "/README.md",
-    "/docs/DESIGN.md",
-    "/docs/RELEASE.md",
-    "/pyproject.toml",
-    "/requirements/lock.txt",
-    "/scripts/introspect_plugin.py",
-    "/scripts/profile_render.py",
-    "/src/vst_bench_ml",
-    "/tests",
-]
-exclude = [
-    "/scripts/smoke_generate.py",
-    "/src/vst_bench_ml/pool.py",
-    "/src/vst_bench_ml/presets.py",
-    "/src/vst_bench_ml/sensitivity.py",
-    "/src/vst_bench_ml/spectral.py",
+    "/CITATION.cff", "/LICENSE", "/NOTICE", "/README.md", "/CHANGELOG.md",
+    "/CONTRIBUTING.md", "/docs", "/pyproject.toml", "/requirements/lock.txt",
+    "/scripts/introspect_plugin.py", "/scripts/profile_render.py",
+    "/src/vst_bench_ml", "/tests",
 ]

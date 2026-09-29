@@ -1,76 +1,61 @@
 # vst-bench-ml
 
-Pure-Python orchestration for sampling plugin parameters, driving a separately
-installed localhost JSON-RPC test host, applying basic audio-quality checks, and
-writing NumPy audio plus JSON metadata.
+Generate audio-plugin datasets with records of how each output was produced.
+`vst-bench-ml` samples plugin parameters, coordinates offline rendering, records
+software and render settings, and checks stored artifacts for changes or missing files.
 
-The Python package does **not** contain a plugin host, plugin binaries, product
-schemas, presets, models, datasets, or audio. It supports the pinned Python
-3.12 verification stack documented here; broader portability is not claimed.
+## Install
 
-## Install for verification
+Use Python 3.12 in a virtual environment:
 
 ```sh
-python -m pip install --require-hashes -r requirements/lock.txt
-python -m pip install --no-deps .
-python -m pytest -q
-python -m vst_bench_ml.cli --help
-python -m vst_bench_ml.cli render --help
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install vst-bench-ml==0.1.1
+vst-bench-ml --help
 ```
 
-`pyloudnorm` is a required dependency. Installation without dependencies is
-supported only when the locked dependencies are installed first; normalization
-never silently changes method because the dependency is absent.
+Alternatively, install a source checkout with `python -m pip install .`.
 
-## Host boundary
+The metadata permits Python 3.10 or newer. The documented rendering environment
+is macOS arm64 with Python 3.12; see the installation guide for the tested scope.
 
-The `render` command connects to `127.0.0.1` and requires a fresh host that
-implements the versioned JSON-RPC interface described in [docs/DESIGN.md](docs/DESIGN.md).
-The host must report immutable source/build identity, executable hash, exact
-plugin identity, deterministic-reset support, and parameter-readback support.
-Missing, null, already-loaded, or mismatched identity fails closed.
+## First dataset
 
-```sh
-vst-bench-ml render \
-  --plugin /absolute/path/to/example.vst3 \
-  --param-manifest parameter-manifest.json \
-  --n 100 --out output --seed-label example-v1
-```
+Rendering needs a separately installed host and a plugin. The
+[sample-free companion walkthrough](https://github.com/itsuzef/vst-bench-dataset-host-public/blob/main/docs/QUICKSTART.md)
+provides both and takes you from installation to eight small generated outputs.
+The broader `vst-bench` MCP testing application is not required.
 
-The seed reproduces the sampling plan on the validated dependency stack. Audio
-identity across hosts, operating systems, architectures, or plugin builds is not
-claimed.
-
-## Provenance and integrity
-
-Every completed or interrupted render writes a sealed `manifest.json`,
-`records.jsonl`, and append-only `failures.jsonl`. The manifest binds the
-package source and version, host and plugin identities, parameter manifest,
-runtime and direct dependencies, RNG and sampling-plan identity, normalization
-method, UTC observation window, kept/drop/failure counts, and SHA-256 identities
-for every output. Drops remain in the failure ledger; a render exception is
-recorded before it is raised.
-
-Verify a dataset without loading a plugin:
+For a configured compatible host:
 
 ```sh
+vst-bench-ml render --plugin /absolute/path/to/example.vst3 \
+  --param-manifest parameter-manifest.json --n 4 --out output \
+  --seed-label example-v1
 vst-bench-ml verify --manifest output/manifest.json
 ```
 
-Verification fails closed on missing identity, a changed manifest payload,
-missing artifacts, unsafe artifact paths, or byte/hash mismatches. These
-identities establish the observed stack and do not imply portability,
-scientific validity, or release authorization.
+Use a new output directory and a fresh host for each render. Offline verification
+needs only this Python package and the stored dataset, without running a plugin.
 
-## License
+## Learn more
 
-The repository source is licensed under the [MIT License](LICENSE). Dependency
-terms and redistribution notes are recorded separately in [NOTICE](NOTICE).
-The license does not itself authorize a repository visibility change, public
-release, dataset release, manuscript submission, or scientific claim.
+- [User documentation](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/README.md)
+- [Installation](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/INSTALL.md)
+- [Commands and outputs](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/USAGE.md)
+- [Troubleshooting](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/TROUBLESHOOTING.md)
+- [Architecture and host protocol](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/DESIGN.md)
+- [Issues](https://github.com/itsuzef/vst-bench-ml-public/issues) and [contributing](https://github.com/itsuzef/vst-bench-ml-public/blob/main/CONTRIBUTING.md)
 
-## Citation and release verification
+The package contains Python tools; the host, plugin binaries, datasets, presets,
+and audio are supplied or generated separately. Hashes establish artifact
+integrity. Matching output bytes have only been demonstrated on pinned environments;
+scientific suitability and cross-platform audio identity require separate evaluation.
 
-Citation metadata is provided in [CITATION.cff](CITATION.cff). The exact
-release gates and companion-host validation requirement are documented in
-[docs/RELEASE.md](docs/RELEASE.md).
+## Source, licence, and citation
+
+MIT source; dependency notices are in [NOTICE](https://github.com/itsuzef/vst-bench-ml-public/blob/main/NOTICE).
+The [0.1.0 Zenodo archive](https://doi.org/10.5281/zenodo.22924036) remains the
+historical release. See [public source history](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/HISTORY.md)
+and [CITATION.cff](https://github.com/itsuzef/vst-bench-ml-public/blob/main/CITATION.cff) for version-specific attribution.
