@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vst-bench-ml"
+version = "0.1.0"
+description = "Deterministic Python orchestration for a separately installed audio-plugin test host"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Youssef Hemimy" }]
+license = "MIT"
+keywords = ["audio", "plugin", "rendering", "json-rpc"]
+dependencies = [
+    "numpy==2.2.6",
+    "soundfile==0.13.1",
+    "pyloudnorm==0.1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.1", "ruff==0.12.0", "hatchling==1.27.0"]
+
+[project.scripts]
+vst-bench-ml = "vst_bench_ml.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/itsuzef/vst-bench-ml"
+Repository = "https://github.com/itsuzef/vst-bench-ml"
+Issues = "https://github.com/itsuzef/vst-bench-ml/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vst_bench_ml"]
+exclude = [
+    "src/vst_bench_ml/pool.py",
+    "src/vst_bench_ml/presets.py",
+    "src/vst_bench_ml/sensitivity.py",
+    "src/vst_bench_ml/spectral.py",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/CITATION.cff",
+    "/LICENSE",
+    "/NOTICE",
+    "/README.md",
+    "/docs/DESIGN.md",
+    "/docs/RELEASE.md",
+    "/pyproject.toml",
+    "/requirements/lock.txt",
+    "/scripts/introspect_plugin.py",
+    "/scripts/profile_render.py",
+    "/src/vst_bench_ml",
+    "/tests",
+]
+exclude = [
+    "/scripts/smoke_generate.py",
+    "/src/vst_bench_ml/pool.py",
+    "/src/vst_bench_ml/presets.py",
+    "/src/vst_bench_ml/sensitivity.py",
+    "/src/vst_bench_ml/spectral.py",
+]

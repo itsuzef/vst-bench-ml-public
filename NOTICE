@@ -1,0 +1,41 @@
+Dependency notice inventory for the locked verification environment
+
+The repository source is licensed under the MIT License. This notice records
+separately licensed dependencies and does not itself authorize a public release.
+
+- NumPy 2.2.6 — BSD-3-Clause — Copyright NumPy Developers —
+  https://numpy.org/ — artifact hashes: requirements/lock.txt — redistribute
+  license text with binary distributions.
+- SoundFile 0.13.1 — BSD-3-Clause — Copyright Erik de Castro Lopo and PySoundFile
+  contributors — https://github.com/bastibe/python-soundfile — artifact hashes:
+  requirements/lock.txt — preserve license and bundled native-library notices.
+- libsndfile (reached through SoundFile wheels) — LGPL-2.1-or-later — Copyright
+  Erik de Castro Lopo and contributors — https://libsndfile.github.io/libsndfile/
+  — identity comes from the selected SoundFile wheel — preserve LGPL notice,
+  source offer/link, and relinking rights as applicable.
+- CFFI 2.1.1 — MIT — Copyright Armin Rigo and contributors —
+  https://cffi.readthedocs.io/ — artifact hashes: requirements/lock.txt —
+  preserve license text.
+- pycparser 3.0 — BSD-3-Clause — Copyright Eli Bendersky —
+  https://github.com/eliben/pycparser — artifact hashes: requirements/lock.txt —
+  preserve license text.
+- pyloudnorm 0.1.1 — MIT — Copyright Christian J. Steinmetz —
+  https://github.com/csteinmetz1/pyloudnorm — artifact hashes:
+  requirements/lock.txt — preserve license text.
+- SciPy 1.15.3 — BSD-3-Clause — Copyright SciPy Developers —
+  https://scipy.org/ — artifact hashes: requirements/lock.txt — transitive
+  pyloudnorm runtime dependency; preserve license and bundled-library notices.
+- future 1.0.0 — MIT — Copyright Python-Future contributors —
+  https://python-future.org/ — artifact hashes: requirements/lock.txt —
+  transitive pyloudnorm runtime dependency; preserve license text.
+- Hatchling 1.27.0 — MIT — Copyright Ofek Lev —
+  https://github.com/pypa/hatch — artifact hashes: requirements/lock.txt —
+  build-only; preserve license text when redistributed.
+- pytest 8.4.1 — MIT — Copyright pytest contributors —
+  https://pytest.org/ — artifact hashes: requirements/lock.txt — test-only.
+- Ruff 0.12.0 — MIT — Copyright Astral Software Inc. —
+  https://github.com/astral-sh/ruff — artifact hashes: requirements/lock.txt —
+  verification-only.
+
+Host, plugin, SDK, platform, and cryptography-library licenses are outside the
+Python wheel. An end-to-end run must inventory those artifacts separately.

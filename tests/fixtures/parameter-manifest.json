@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "plugin": "org.example.fixture",
+  "params": [
+    {
+      "id": "gain",
+      "index": 0,
+      "name": "Gain",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5
+    }
+  ]
+}
