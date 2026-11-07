@@ -34,16 +34,17 @@ def _processor(
         npz_path = audio_dir / (Path(wav_path).stem + ".npz")
         export.save_npz(normalized, sample_rate, str(npz_path))
         os.remove(wav_path)
+        output_identity = provenance.file_identity(npz_path, dataset_root)
         record.update(
             {
-                "audio_path": os.path.relpath(npz_path, dataset_root),
+                "audio_path": output_identity["path"],
                 "sample_rate": int(sample_rate),
                 "in_lufs": (
                     round(float(input_lufs), 2) if math.isfinite(input_lufs) else None
                 ),
                 "quality": report,
                 "observed_at": provenance.observed_at(),
-                "output": provenance.file_identity(npz_path, dataset_root),
+                "output": output_identity,
             }
         )
         sink.write(json.dumps(record, sort_keys=True) + "\n")

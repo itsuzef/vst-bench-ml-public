@@ -9,6 +9,8 @@
 - Build the native companion once per platform and exercise rendering and offline
   verification in the same compatibility workflow; preserve logs and fixture outputs.
 - Remove the test suite's Python 3.11-only TOML import so tests can run on Python 3.10.
+- Write portable dataset paths consistently in records and manifests so Windows
+  renders pass their own integrity verification.
 
 ## 0.1.1
 
