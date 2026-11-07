@@ -1,7 +1,8 @@
+from importlib.metadata import requires
 from pathlib import Path
-import tomllib
 
 import numpy as np
+from packaging.requirements import Requirement
 import pytest
 
 from vst_bench_ml import quality
@@ -14,10 +15,9 @@ def test_quarantined_modules_are_not_imported():
         assert f"import {name}" not in text
 
 
-def test_pyloudnorm_is_a_required_exact_dependency():
-    pyproject = Path(__file__).parents[1] / "pyproject.toml"
-    dependencies = tomllib.loads(pyproject.read_text())["project"]["dependencies"]
-    assert "pyloudnorm==0.1.1" in dependencies
+def test_pyloudnorm_is_a_required_runtime_dependency():
+    dependencies = [Requirement(item) for item in requires("vst-bench-ml")]
+    assert any(item.name == "pyloudnorm" and item.marker is None for item in dependencies)
 
 
 def test_missing_pyloudnorm_fails_clearly(monkeypatch):

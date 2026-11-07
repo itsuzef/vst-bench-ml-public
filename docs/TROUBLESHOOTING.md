@@ -4,6 +4,7 @@
 | --- | --- |
 | `vst-bench-ml: command not found` | Activate the environment used by pip; try `python -m vst_bench_ml.cli --help`. |
 | Pip cannot find version 0.1.1 | Check the package name and index configuration; alternatively use `python -m pip install .` from the checkout. |
+| NumPy or SciPy cannot install, or pip attempts a source build | For ordinary use, install the revised package with compatible dependencies without the historical lockfile. Published 0.1.1 retains its original pins. For exact historical reproduction, use its matching Python 3.12 environment. Upgrade pip and record the complete error, Python version, and architecture. See [installation troubleshooting](INSTALL.md#installation-troubleshooting). |
 | Connection refused | Start the companion host; match its port to `render --port`. |
 | Plugin already loaded | Restart the host before another render. |
 | Plugin identity mismatch | Use the parameter manifest for that exact plugin. The companion accepts only its Method Fixture. |

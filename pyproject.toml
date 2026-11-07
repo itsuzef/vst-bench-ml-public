@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling==1.27.0"]
+requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
@@ -17,10 +17,10 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio",
     "Topic :: Scientific/Engineering",
 ]
-dependencies = ["numpy==2.2.6", "soundfile==0.13.1", "pyloudnorm==0.1.1"]
+dependencies = ["numpy>=2.2.6,<3", "soundfile>=0.13.1,<1", "pyloudnorm>=0.1.1,<1"]
 
 [project.optional-dependencies]
-dev = ["pytest==8.4.1", "ruff==0.12.0", "hatchling==1.27.0"]
+dev = ["pytest>=8.4.1,<10", "ruff==0.12.0", "hatchling>=1.27,<2"]
 
 [project.scripts]
 vst-bench-ml = "vst_bench_ml.cli:main"

@@ -6,19 +6,23 @@ software and render settings, and checks stored artifacts for changes or missing
 
 ## Install
 
-Use Python 3.12 in a virtual environment:
+Use a Python virtual environment (Python 3.10 or newer):
 
 ```sh
-python3.12 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install vst-bench-ml==0.1.1
+python -m pip install vst-bench-ml
 vst-bench-ml --help
 ```
 
 Alternatively, install a source checkout with `python -m pip install .`.
 
-The metadata permits Python 3.10 or newer. The documented rendering environment
-is macOS arm64 with Python 3.12; see the installation guide for the tested scope.
+The unreleased source allows compatible dependency versions; published 0.1.1
+retains its original pins until a new release is published. CI targets ordinary
+wheel installation and package tests on Windows, Linux, and macOS (arm64 and
+Intel), across CPython 3.10–3.15. Native rendering and exact output-hash reproduction
+have separate validation requirements. See the [installation guide](docs/INSTALL.md)
+for Windows commands, source installation, and the historical reproduction lock.
 
 ## First dataset
 

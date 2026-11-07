@@ -6,7 +6,7 @@ it. The normal user install is described in [INSTALL.md](INSTALL.md).
 ```sh
 python -m pip install --require-hashes -r requirements/lock.txt
 python -m pip install build twine
-python -m build --outdir ../dist
+python -m build --no-isolation --outdir ../dist
 python -m twine check ../dist/*
 python -m pip install --no-deps ../dist/vst_bench_ml-0.1.1-py3-none-any.whl
 python -B -m pytest -p no:cacheprovider -q
@@ -17,6 +17,11 @@ The full release also requires the [companion validation](https://github.com/its
 which checks the exact source commit, installed wheel, locked dependencies, two
 render runs, expected output hashes, and negative cases. Record that evidence
 against the release commit before publishing. Do not move an existing release tag.
+
+The ordinary-install compatibility matrix resolves compatible dependencies without
+the historical lock. Require its results as well as locked validation before
+publishing the compatibility revision. Preserve the original lockfile and release
+tags; choose a new release version rather than replacing the published 0.1.1 files.
 
 The `publish.yml` GitHub Actions workflow uses PyPI Trusted Publishing. Configure
 a pending publisher for project `vst-bench-ml`, owner `itsuzef`, repository
