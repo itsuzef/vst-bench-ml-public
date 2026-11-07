@@ -7,7 +7,7 @@ name = "vst-bench-ml"
 version = "0.1.1"
 description = "Auditable audio-plugin dataset generation and offline integrity verification"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "Youssef Hemimy" }]
 license = "MIT"
 license-files = ["LICENSE", "NOTICE"]
@@ -17,7 +17,14 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio",
     "Topic :: Scientific/Engineering",
 ]
-dependencies = ["numpy>=2.2.6,<3", "soundfile>=0.13.1,<1", "pyloudnorm>=0.1.1,<1"]
+dependencies = [
+    "numpy>=2.2.6,<3",
+    "soundfile>=0.13.1,<1",
+    "pyloudnorm>=0.1.1,<1",
+    # The Darwin 27 loader rejects the old Fortran PROPACK binary in SciPy 1.15.3.
+    # Keep the historical lock valid on its original, older platform.
+    "scipy>=1.17.1,<2; sys_platform == 'darwin' and platform_release >= '27.0'",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.4.1,<10", "ruff==0.12.0", "hatchling>=1.27,<2"]

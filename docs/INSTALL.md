@@ -3,7 +3,7 @@
 ## Ordinary installation
 
 The Python package installs independently of the native host and plugin. Package
-metadata requires Python 3.10 or newer. CI targets CPython 3.10–3.15 on Windows,
+metadata requires Python 3.11 or newer. CI targets CPython 3.11–3.15 on Windows,
 Linux, and macOS (Apple Silicon and Intel); configured CI targets are not evidence
 of a completed test run. See the revision evidence for measured results.
 
@@ -34,9 +34,18 @@ revised dependencies before a new release, install the revised checkout using
 
 Ordinary installation allows compatible versions of NumPy, SoundFile, and
 pyloudnorm; pip selects versions compatible with the interpreter and platform.
-SciPy is resolved as a transitive dependency of pyloudnorm. Do not install the
+SciPy is normally resolved as a transitive dependency of pyloudnorm. On Darwin 27
+and newer (including the tested macOS 27.0.1), the package additionally requires
+SciPy >=1.17.1,<2 so installation upgrades incompatible older SciPy versions.
+Do not install the
 historical lockfile for ordinary use. Normalization is required: omitting
 pyloudnorm is an error.
+
+Python 3.10 is no longer supported by this revision. Hosted tests reproduced a
+SciPy 1.15.3 native-library loading failure on macOS 27.0.1, and newer SciPy
+releases need Python 3.11 or newer. Use a supported interpreter rather than
+retaining the obsolete dependency stack on a newer operating system. The
+historical releases keep their original metadata and lockfile.
 
 Verify an existing dataset with
 `vst-bench-ml verify --manifest /path/to/manifest.json`. This needs the Python
@@ -86,6 +95,10 @@ binds a particular wheel, source commit, dependency lock, and expected outputs.
 An ordinary installation is not evidence of that full validation run. Changing
 compatible dependencies can change numerical results; exact output hashes remain
 scoped to the recorded validation environment.
+
+The historical SciPy lock is not compatible with the revised package's Darwin 27
+constraint. Reproduce historical results on the recorded historical platform and
+source release; do not use `--no-deps` to bypass the current compatibility policy.
 
 The historical SciPy 1.15.3 and NumPy 2.2.6 pins lack CPython 3.14/3.15 wheels.
 Use the matching historical interpreter for exact reproduction, or ordinary

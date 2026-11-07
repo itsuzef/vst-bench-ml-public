@@ -6,7 +6,7 @@ software and render settings, and checks stored artifacts for changes or missing
 
 ## Install
 
-Use a Python virtual environment (Python 3.10 or newer):
+Use a Python virtual environment (Python 3.11 or newer):
 
 ```sh
 python3 -m venv .venv
@@ -20,7 +20,7 @@ Alternatively, install a source checkout with `python -m pip install .`.
 The unreleased source allows compatible dependency versions; published 0.1.1
 retains its original pins until a new release is published. CI targets ordinary
 wheel installation and package tests on Windows, Linux, and macOS (arm64 and
-Intel), across CPython 3.10–3.15. Native rendering and exact output-hash reproduction
+Intel), across CPython 3.11–3.15. Native rendering and exact output-hash reproduction
 have separate validation requirements. See the [installation guide](docs/INSTALL.md)
 for Windows commands, source installation, and the historical reproduction lock.
 

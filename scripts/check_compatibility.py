@@ -64,8 +64,24 @@ def check(version, args, runner, plugin):
         env_dir = folder / "env"
         run([args.uv, "venv", "--seed", "--python", version, env_dir], "create-environment")
         py = env_dir / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+        upgrade_check = (
+            sys.platform == "darwin"
+            and int(platform.release().split(".")[0]) >= 27
+            and version == "3.12"
+        )
+        if upgrade_check:
+            run([py, "-m", "pip", "install", "--only-binary=numpy,scipy",
+                 "scipy==1.15.3"], "install-old-scipy")
+            result["scipy_before_install"] = run([
+                py, "-c", "import importlib.metadata; print(importlib.metadata.version('scipy'))"
+            ], "old-scipy-version").strip()
         run([py, "-m", "pip", "install", "--only-binary=numpy,scipy,soundfile,cffi",
              args.wheel, "pytest>=8.4.1,<10"], "install-wheel")
+        if upgrade_check:
+            run([py, "-c", "from importlib.metadata import version; "
+                 "from packaging.version import Version; "
+                 "assert Version(version('scipy')) >= Version('1.17.1')"], "scipy-upgraded")
+            result["scipy_upgrade_checked"] = True
         result["python"] = run([py, "--version"], "python").strip()
         result["packages"] = json.loads(run([py, "-m", "pip", "list", "--format=json"], "packages"))
         run([py, "-m", "pip", "check"], "dependency-consistency")
@@ -138,7 +154,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("package-repo", "companion-repo", "build-dir", "wheel", "work-dir"):
         parser.add_argument(f"--{name}", type=Path, required=True)
-    parser.add_argument("--versions", nargs="+", default=["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"])
+    parser.add_argument("--versions", nargs="+", default=["3.11", "3.12", "3.13", "3.14", "3.15"])
     parser.add_argument("--uv", default=shutil.which("uv"))
     args = parser.parse_args()
     for name in ("package_repo", "companion_repo", "build_dir", "wheel", "work_dir"):

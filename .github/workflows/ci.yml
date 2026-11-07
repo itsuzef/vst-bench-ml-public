@@ -76,7 +76,7 @@ jobs:
         run: |
           cmake -S companion -B "$RUNNER_TEMP/native" -DCMAKE_BUILD_TYPE=Release -DSMTG_CREATE_PLUGIN_LINK=OFF 2>&1 | tee "$RUNNER_TEMP/native-build.log"
           cmake --build "$RUNNER_TEMP/native" --config Release --target MethodFixture method_fixture_runner --parallel 4 2>&1 | tee -a "$RUNNER_TEMP/native-build.log"
-      - name: Check installation, package tests, rendering, and verification on Python 3.10–3.15
+      - name: Check installation, package tests, rendering, and verification on Python 3.11–3.15
         run: |
           python package/scripts/check_compatibility.py \
             --package-repo package --companion-repo companion \
