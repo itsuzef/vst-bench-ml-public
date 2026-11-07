@@ -4,10 +4,16 @@ on:
     branches: [main, 'revision/**']
   pull_request:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Run all platforms or one targeted compatibility check
+        type: choice
+        default: all
+        options: [all, ubuntu-latest, windows-latest, macos-15, macos-26, macos-15-intel, xcode-27]
 permissions:
   contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
   cancel-in-progress: true
 env:
   COMPANION_REF: 10272236a00b4c4dac8bc788ae3b14a2efa55ca3
@@ -42,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-15, macos-26, macos-15-intel]
+        os: ${{ fromJSON(inputs.platform != '' && inputs.platform != 'all' && format('["{0}"]', inputs.platform) || '["ubuntu-latest", "windows-latest", "macos-15", "macos-26", "macos-15-intel", "xcode-27"]') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -90,6 +96,7 @@ jobs:
             ${{ runner.temp }}/compatibility-results/*/dataset
           retention-days: 7
   locked-environment:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all'
     name: Historical dependency lock / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
