@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Record SciPy alongside the other runtime dependencies. Clarify that offline
+  verification checks stored artifacts rather than the current Python environment.
 - Allow compatible runtime dependencies instead of requiring one exact NumPy,
   SoundFile, and pyloudnorm version; preserve the historical hashed validation lock.
 - Add ordinary wheel installation and package tests across Windows, Linux, macOS

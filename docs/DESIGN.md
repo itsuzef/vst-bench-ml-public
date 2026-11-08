@@ -25,8 +25,8 @@ repository history but are excluded from source and wheel artifacts.
 
 A render manifest uses `vst-bench-ml.provenance/v1` and binds four layers:
 
-1. execution identity: package source/version, runtime environment, exact direct
-   dependency versions, RNG derivation, and normalization method;
+1. execution identity: package source/version, runtime environment, installed
+   NumPy, SoundFile, pyloudnorm, and SciPy versions, RNG derivation, and normalization method;
 2. external identity: fail-closed host, plugin, and parameter-manifest
    identities;
 3. observation: UTC start/completion times and completed or failed status;

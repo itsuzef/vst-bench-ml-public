@@ -65,10 +65,20 @@ with np.load("output/audio/p000000_sus_c3.npz", allow_pickle=False) as item:
 vst-bench-ml verify --manifest output/manifest.json
 ```
 
-Success prints `verified: N kept, D dropped, F failures` and exits with status 0.
+Success prints `verified: N kept, D dropped, F failures (artifact integrity only)`
+and exits with status 0.
 Changed/missing artifacts or invalid identity fields produce an error and nonzero
 exit status. A valid failed-run manifest can still verify: check the observation
 status and failure count before treating a dataset as complete.
+
+This command checks the recorded manifest and files. It does not compare the
+current Python environment with the environment used to generate them. Updating
+SciPy or another dependency does not invalidate an unchanged dataset. New renders
+record the installed NumPy, SoundFile, pyloudnorm, and SciPy versions.
+
+To reproduce the exact locked environment, use the companion's
+[dependency environment check](https://github.com/itsuzef/vst-bench-dataset-host-public/blob/main/docs/VALIDATION.md#check-installed-dependency-versions).
+That check compares installed versions with the lockfile and rejects mismatches.
 
 Verification checks internal consistency; it does not authenticate the producer,
 prove that an untrusted host reported honestly, or establish scientific usefulness.

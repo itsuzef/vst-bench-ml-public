@@ -215,7 +215,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
     outcomes = manifest["outcomes"]
     print(
         f"verified: {outcomes['kept']} kept, {outcomes['dropped']} dropped, "
-        f"{outcomes['failures']} failures"
+        f"{outcomes['failures']} failures (artifact integrity only)"
     )
 
 
@@ -238,7 +238,10 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--keep-bad", action="store_true")
     render.set_defaults(func=cmd_render)
 
-    verify = sub.add_parser("verify", help="verify manifest and artifact integrity")
+    verify = sub.add_parser(
+        "verify", help="verify stored manifest and artifact integrity",
+        description="Check stored artifacts without comparing this machine's installed dependency versions.",
+    )
     verify.add_argument("--manifest", required=True)
     verify.set_defaults(func=cmd_verify)
     return parser

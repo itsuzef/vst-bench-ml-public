@@ -1,4 +1,5 @@
 import json
+import importlib.metadata
 from pathlib import Path
 
 import numpy as np
@@ -7,6 +8,24 @@ import soundfile as sf
 
 from vst_bench_ml import cli, provenance, sampling, seeding
 from vst_bench_ml.introspect import load_manifest
+
+
+def test_dependency_identity_records_scipy_and_detects_its_version_change(monkeypatch):
+    original = provenance.dependency_identity()
+    assert next(x["version"] for x in original["items"] if x["distribution"] == "scipy") == importlib.metadata.version("scipy")
+    observed_version = importlib.metadata.version
+    monkeypatch.setattr(importlib.metadata, "version",
+                        lambda name: "0.0.0" if name == "scipy" else observed_version(name))
+    assert provenance.dependency_identity()["sha256"] != original["sha256"]
+
+
+def test_offline_verification_does_not_require_matching_installed_dependencies(tmp_path, monkeypatch):
+    payload = identity_payload(tmp_path, {"sha256": "3" * 64, "patches": 0})
+    path = tmp_path / "manifest.json"
+    provenance.write_manifest(path, payload)
+    monkeypatch.setattr(importlib.metadata, "version",
+                        lambda name: pytest.fail("offline verification queried the current environment"))
+    assert provenance.verify_manifest(path)["outcomes"]["kept"] == 0
 
 
 def identity_payload(tmp_path, plan_identity):

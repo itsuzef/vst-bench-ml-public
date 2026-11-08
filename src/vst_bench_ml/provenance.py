@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = "vst-bench-ml.provenance/v1"
-DIRECT_DEPENDENCIES = ("numpy", "soundfile", "pyloudnorm")
+RUNTIME_DEPENDENCIES = ("numpy", "soundfile", "pyloudnorm", "scipy")
 DISTRIBUTED_MODULES = (
     "__init__.py",
     "batch.py",
@@ -120,7 +120,7 @@ def environment_identity() -> dict:
     }
 
 
-def dependency_identity(names=DIRECT_DEPENDENCIES) -> dict:
+def dependency_identity(names=RUNTIME_DEPENDENCIES) -> dict:
     items = []
     for name in sorted(names, key=str.casefold):
         try:
