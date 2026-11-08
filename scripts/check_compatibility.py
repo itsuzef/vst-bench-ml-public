@@ -91,6 +91,8 @@ def check(version, args, runner, plugin):
             "installed-wheel-identity")
         run([py, "-B", "-m", "pytest", "-p", "no:cacheprovider", "-q",
              args.package_repo / "tests"], "package-tests")
+        run([py, "-B", "-m", "pytest", "-p", "no:cacheprovider", "-q",
+             args.companion_repo / "tests/test_dependencies.py"], "dependency-check-tests")
         run([py, "-m", "vst_bench_ml.cli", "--help"], "cli")
         run([py, "-m", "vst_bench_ml.cli", "verify", "--help"], "verify-help")
         with socket.socket() as sock:
