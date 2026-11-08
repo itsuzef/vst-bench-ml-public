@@ -326,3 +326,67 @@ def test_missing_and_malformed_identities_fail_closed(tmp_path):
     payload["identities"]["host"]["source_commit"] = " "
     with pytest.raises(provenance.IntegrityError, match="source_commit"):
         provenance.seal_manifest(payload)
+
+
+@pytest.mark.parametrize("relative", ["extra.npz", "audio/extra.npz", ".DS_Store", "notes/readme.txt"])
+def test_unlisted_files_rejected_by_default_with_explicit_opt_out(tmp_path, relative):
+    payload = identity_payload(tmp_path, {"sha256": "3" * 64, "patches": 0})
+    manifest = tmp_path / "manifest.json"
+    provenance.write_manifest(manifest, payload)
+    extra = tmp_path / relative
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_bytes(b"unlisted")
+    with pytest.raises(provenance.IntegrityError, match="unlisted dataset file"):
+        provenance.verify_manifest(manifest)
+    provenance.verify_manifest(manifest, allow_extra_files=True)
+    extra.unlink()
+    provenance.verify_manifest(manifest)  # Empty directories are not artifacts.
+
+
+@pytest.mark.parametrize("change", ["delete", "modify"])
+@pytest.mark.parametrize("allow_extra_files", [False, True])
+def test_bound_files_remain_required_in_both_modes(tmp_path, change, allow_extra_files):
+    payload = identity_payload(tmp_path, {"sha256": "3" * 64, "patches": 0})
+    manifest = tmp_path / "manifest.json"
+    provenance.write_manifest(manifest, payload)
+    records = tmp_path / "records.jsonl"
+    if change == "delete":
+        records.unlink()
+    else:
+        records.write_bytes(b"changed")
+    with pytest.raises(provenance.IntegrityError, match="missing|mismatch"):
+        provenance.verify_manifest(manifest, allow_extra_files=allow_extra_files)
+
+
+@pytest.mark.parametrize("kind", ["file", "directory", "dangling", "manifest"])
+def test_strict_inventory_rejects_symbolic_links(tmp_path, kind):
+    payload = identity_payload(tmp_path, {"sha256": "3" * 64, "patches": 0})
+    manifest = tmp_path / "manifest.json"
+    provenance.write_manifest(manifest, payload)
+    if kind == "manifest":
+        target = tmp_path / "sealed.json"
+        manifest.rename(target)
+        link = manifest
+    else:
+        target = {"file": tmp_path / "records.jsonl", "directory": tmp_path,
+                  "dangling": tmp_path / "absent"}[kind]
+        link = tmp_path / "extra-link"
+    try:
+        link.symlink_to(target, target_is_directory=kind == "directory")
+    except OSError as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+    with pytest.raises(provenance.IntegrityError, match="symbolic link"):
+        provenance.verify_manifest(manifest)
+
+
+def test_verify_cli_reports_inventory_scope(tmp_path, capsys):
+    payload = identity_payload(tmp_path, {"sha256": "3" * 64, "patches": 0})
+    manifest = tmp_path / "manifest.json"
+    provenance.write_manifest(manifest, payload)
+    cli.main(["verify", "--manifest", str(manifest)])
+    assert "artifact integrity and file inventory" in capsys.readouterr().out
+    (tmp_path / "notes.txt").write_text("personal notes")
+    with pytest.raises(SystemExit, match="unlisted dataset file: notes.txt"):
+        cli.main(["verify", "--manifest", str(manifest)])
+    cli.main(["verify", "--manifest", str(manifest), "--allow-extra-files"])
+    assert "listed artifact integrity only" in capsys.readouterr().out

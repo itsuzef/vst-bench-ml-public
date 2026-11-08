@@ -40,3 +40,12 @@ recorded master seed, plugin identifier, stage, stream index, requested count,
 and parameter specs. Replay is asserted only for that recorded dependency
 stack. Failures and quality drops are evidence and are never inferred from
 missing output files.
+
+## Dataset file inventory
+
+Verification rejects files absent from the artifact inventory, including hidden
+files, and rejects symbolic links and other non-regular entries. Only the manifest,
+records ledger, failure ledger, and declared outputs are allowed. Empty directories
+are ignored. Keep auxiliary material outside the dataset root. The explicit
+`--allow-extra-files` option retains listed-artifact verification without directory
+completeness or link checks; it never permits missing or changed declared artifacts.

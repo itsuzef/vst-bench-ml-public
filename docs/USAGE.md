@@ -65,11 +65,22 @@ with np.load("output/audio/p000000_sus_c3.npz", allow_pickle=False) as item:
 vst-bench-ml verify --manifest output/manifest.json
 ```
 
-Success prints `verified: N kept, D dropped, F failures (artifact integrity only)`
+Success prints `verified: N kept, D dropped, F failures (artifact integrity and file inventory)`
 and exits with status 0.
-Changed/missing artifacts or invalid identity fields produce an error and nonzero
+Added files, changed/missing artifacts, or invalid identity fields produce an error and nonzero
 exit status. A valid failed-run manifest can still verify: check the observation
 status and failure count before treating a dataset as complete.
+
+By default the dataset directory may contain only the manifest itself, the two
+bound ledgers, and declared outputs. Hidden files are checked too. Symbolic links
+(including directory and dangling links) and other non-regular entries are rejected;
+empty directories are ignored. Keep notes, logs, and other auxiliary files outside
+the dataset directory. Renaming the manifest is allowed.
+
+For an intentional directory containing additional files, use
+`verify --manifest output/manifest.json --allow-extra-files`. Its success message
+says `listed artifact integrity only`: it skips file-inventory and link checks,
+but still requires every declared artifact to pass all existing integrity checks.
 
 This command checks the recorded manifest and files. It does not compare the
 current Python environment with the environment used to generate them. Updating

@@ -209,13 +209,14 @@ def cmd_render(args: argparse.Namespace) -> None:
 
 def cmd_verify(args: argparse.Namespace) -> None:
     try:
-        manifest = provenance.verify_manifest(args.manifest)
+        manifest = provenance.verify_manifest(args.manifest, allow_extra_files=args.allow_extra_files)
     except provenance.IntegrityError as exc:
         raise SystemExit(str(exc)) from exc
     outcomes = manifest["outcomes"]
+    scope = "listed artifact integrity only" if args.allow_extra_files else "artifact integrity and file inventory"
     print(
         f"verified: {outcomes['kept']} kept, {outcomes['dropped']} dropped, "
-        f"{outcomes['failures']} failures (artifact integrity only)"
+        f"{outcomes['failures']} failures ({scope})"
     )
 
 
@@ -243,6 +244,8 @@ def build_parser() -> argparse.ArgumentParser:
         description="Check stored artifacts without comparing this machine's installed dependency versions.",
     )
     verify.add_argument("--manifest", required=True)
+    verify.add_argument("--allow-extra-files", action="store_true",
+                        help="check listed artifacts only; skip directory inventory and link checks")
     verify.set_defaults(func=cmd_verify)
     return parser
 

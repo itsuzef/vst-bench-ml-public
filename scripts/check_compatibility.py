@@ -93,6 +93,8 @@ def check(version, args, runner, plugin):
              args.package_repo / "tests"], "package-tests")
         run([py, "-B", "-m", "pytest", "-p", "no:cacheprovider", "-q",
              args.companion_repo / "tests/test_dependencies.py"], "dependency-check-tests")
+        run([py, "-B", "-m", "pytest", "-p", "no:cacheprovider", "-q",
+             args.companion_repo / "tests/test_inventory.py"], "inventory-tests")
         run([py, "-m", "vst_bench_ml.cli", "--help"], "cli")
         run([py, "-m", "vst_bench_ml.cli", "verify", "--help"], "verify-help")
         with socket.socket() as sock:
@@ -123,6 +125,37 @@ def check(version, args, runner, plugin):
             ], "render")
             run([py, "-m", "vst_bench_ml.cli", "verify", "--manifest", dataset / "manifest.json"],
                 "verify-dataset")
+            run([py, "-c", """
+import json, subprocess, sys
+from pathlib import Path
+root = Path(sys.argv[1])
+command = [sys.executable, '-m', 'vst_bench_ml.cli', 'verify', '--manifest', str(root / 'manifest.json')]
+def verify(expected, *options):
+    result = subprocess.run(command + list(options), capture_output=True, text=True)
+    assert (result.returncode == 0) == expected, result.stdout + result.stderr
+    return result.stdout + result.stderr
+extra = root / 'audio' / 'unlisted.npz'
+extra.write_bytes(b'unlisted')
+try:
+    assert 'unlisted dataset file' in verify(False)
+    assert 'listed artifact integrity only' in verify(True, '--allow-extra-files')
+finally:
+    extra.unlink()
+manifest = json.loads((root / 'manifest.json').read_text())
+output = root / manifest['artifacts']['outputs'][0]['path']
+original = output.read_bytes()
+try:
+    output.write_bytes(original + b'changed')
+    verify(False)
+    verify(False, '--allow-extra-files')
+    output.unlink()
+    verify(False)
+    verify(False, '--allow-extra-files')
+finally:
+    output.write_bytes(original)
+verify(True)
+print('PASS: added file rejected; explicit opt-out accepted; modified/deleted audio rejected in both modes; restored dataset verified')
+""", dataset], "file-inventory-cli")
             manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
             result["outcomes"] = manifest["outcomes"]
             expected = json.loads((args.companion_repo / "fixtures/expected-output.json").read_text())

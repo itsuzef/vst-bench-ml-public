@@ -16,7 +16,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.platform || 'all' }}
   cancel-in-progress: true
 env:
-  COMPANION_REF: 222417b5634d4ada8148fdda73f547153f7df11e
+  COMPANION_REF: ad53dae58e89cc5c0b244a3f2a0075b1cb40e626
 jobs:
   distribution:
     name: Build and check distributions once

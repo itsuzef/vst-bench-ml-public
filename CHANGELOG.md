@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Reject unlisted dataset files, symbolic links, and non-regular entries during
+  verification by default; add an explicit `--allow-extra-files` opt-out.
 - Record SciPy alongside the other runtime dependencies. Clarify that offline
   verification checks stored artifacts rather than the current Python environment.
 - Allow compatible runtime dependencies instead of requiring one exact NumPy,

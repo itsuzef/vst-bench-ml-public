@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import json
+import os
 import platform
 import sys
 from datetime import datetime, timezone
@@ -411,7 +412,31 @@ def _read_jsonl(path: Path, label: str) -> list[dict]:
     return entries
 
 
-def verify_manifest(path: str | Path) -> dict:
+def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> None:
+    """Reject unlisted files and links without traversing linked directories."""
+    identities = [artifacts["records"], artifacts["failure_ledger"], *artifacts["outputs"]]
+    allowed = {manifest_name, *(item["path"] for item in identities)}
+    try:
+        def walk_error(error: OSError) -> None:
+            raise error
+
+        for directory, folders, files in os.walk(root, followlinks=False, onerror=walk_error):
+            for name in sorted(folders + files):
+                entry = Path(directory) / name
+                relative = entry.relative_to(root).as_posix()
+                if entry.is_symlink():
+                    raise IntegrityError(f"dataset contains a symbolic link: {relative}")
+                if entry.is_dir():
+                    continue
+                if not entry.is_file():
+                    raise IntegrityError(f"dataset contains a non-regular entry: {relative}")
+                if relative not in allowed:
+                    raise IntegrityError(f"unlisted dataset file: {relative}")
+    except OSError as exc:
+        raise IntegrityError(f"cannot inspect dataset file inventory: {exc}") from exc
+
+
+def verify_manifest(path: str | Path, *, allow_extra_files: bool = False) -> dict:
     manifest_path = Path(path)
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -425,12 +450,16 @@ def verify_manifest(path: str | Path) -> dict:
     payload.pop("integrity")
     if canonical_sha256(payload) != expected:
         raise IntegrityError("provenance manifest payload hash mismatch")
+    if manifest_path.is_symlink() and not allow_extra_files:
+        raise IntegrityError("dataset manifest is a symbolic link")
     root = manifest_path.resolve().parent
     artifacts = manifest["artifacts"]
     records_path = _verify_artifact(root, artifacts["records"])
     ledger_path = _verify_artifact(root, artifacts["failure_ledger"])
     for output in artifacts["outputs"]:
         _verify_artifact(root, output)
+    if not allow_extra_files:
+        verify_file_inventory(root, manifest_path.name, artifacts)
     records = _read_jsonl(records_path, "records ledger")
     events = _read_jsonl(ledger_path, "failure ledger")
     outcomes = manifest["outcomes"]
