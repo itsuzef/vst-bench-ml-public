@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 from importlib.metadata import requires
 from pathlib import Path
 

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """vst_bench_ml.quality — audio loading, quality filtering, normalization.
 
 Filters that keep a dataset clean:

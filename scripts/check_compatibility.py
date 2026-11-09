@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Check wheel installation and native fixture rendering across Python versions.
 
 Build the companion once before invoking this script. Environments and results

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Deterministic sampling-plan seeds.
 
 Each patch derives an independent RNG from its explicit inputs. This guarantees

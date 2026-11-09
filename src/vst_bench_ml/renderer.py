@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Shared render, quality-assessment, and normalization path."""
 
 from __future__ import annotations

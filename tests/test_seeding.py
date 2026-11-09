@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 from vst_bench_ml.seeding import master_from_label, patch_rng
 
 

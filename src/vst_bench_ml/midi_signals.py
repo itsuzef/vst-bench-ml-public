@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """vst_bench_ml.midi_signals — the standardized MIDI test signals.
 
 A fixed bank rendered identically across plugins so embeddings compare timbre,

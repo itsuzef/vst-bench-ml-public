@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """vst_bench_ml.export — dataset manifest + numpy audio export.
 
 Layout written under <out>/:

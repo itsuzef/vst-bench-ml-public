@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """vst_bench_ml.sampling — three-tier parameter sampling.
 
 Produces normalized ([0,1]) parameter vectors over a set of audio-relevant

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 import numpy as np
 
 from vst_bench_ml.introspect import ParamSpec

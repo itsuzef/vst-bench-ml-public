@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Provenance manifests and integrity verification for rendered datasets."""
 
 from __future__ import annotations

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 import json
 
 from vst_bench_ml.introspect import load_manifest, to_manifest_entry, write_manifest

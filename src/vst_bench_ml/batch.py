@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """vst_bench_ml.batch — dataset render orchestration.
 
 This module drives a sampling plan sequentially through one compatible host and

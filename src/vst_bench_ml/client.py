@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """Synchronous client for the separately installed host JSON-RPC protocol."""
 
 from __future__ import annotations

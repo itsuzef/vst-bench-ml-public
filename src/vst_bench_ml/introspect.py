@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Youssef Hemimy
+# SPDX-License-Identifier: MIT
+
 """vst_bench_ml.introspect — typed parameter specs.
 
 Primary source of truth is a plugin's ``param_manifest.json``. Each entry
