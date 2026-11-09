@@ -1,0 +1,52 @@
+{
+  "schema": "vst-bench-ml.provenance/v1",
+  "identities": {
+    "package": {
+      "distribution": "vst-bench-ml",
+      "version": "0.1.1",
+      "git_commit": "25c839ba41ec6598a844dd2bbc0e91ae47073c3b"
+    },
+    "host": {
+      "protocol_version": "vst-bench-host-jsonrpc/1",
+      "source_commit": "783e1d9604e819ea2f10d4427a64ba7238b84bd1"
+    },
+    "environment": {
+      "architecture": "arm64",
+      "operating_system": "Darwin",
+      "python_version": "3.12.13"
+    }
+  },
+  "observation": {
+    "completed_at": "2026-09-29T17:46:37.009065Z",
+    "started_at": "2026-09-29T17:46:35.057410Z",
+    "status": "completed"
+  },
+  "request": {
+    "excluded_groups": [],
+    "keep_bad": true,
+    "requested_patches": 4,
+    "sample_rate": 44100,
+    "seconds": 0.5,
+    "signal_mode": "all",
+    "signals": [
+      "sus_c3",
+      "gate_c2"
+    ]
+  },
+  "outcomes": {
+    "attempted": 8,
+    "dropped": 0,
+    "failures": 0,
+    "kept": 8,
+    "rendered": 8
+  },
+  "artifacts": {
+    "outputs": [
+      {
+        "bytes": 799,
+        "path": "audio/p000000_sus_c3.npz",
+        "sha256": "0641dea722773e9f8b2555cb549f4f81a74b87bccf3ac1ebd11809817bd0173f"
+      }
+    ]
+  }
+}

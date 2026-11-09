@@ -43,6 +43,9 @@ vst-bench-ml verify --manifest output/manifest.json
 Use a new output directory and a fresh host for each render. Offline verification
 needs only this Python package and the stored dataset, without running a plugin.
 
+Inspect the [0.1.1 output format examples](docs/examples/fixture-output/README.md)
+without building the host or downloading audio.
+
 ## Learn more
 
 - [User documentation](https://github.com/itsuzef/vst-bench-ml-public/blob/main/docs/README.md)

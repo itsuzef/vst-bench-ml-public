@@ -94,3 +94,9 @@ That check compares installed versions with the lockfile and rejects mismatches.
 Verification checks internal consistency; it does not authenticate the producer,
 prove that an untrusted host reported honestly, or establish scientific usefulness.
 See `render --help` and `verify --help` for the installed command interface.
+
+## Inspect output without a host
+
+[Fixture output examples](examples/fixture-output/README.md) provide an abbreviated
+0.1.1 manifest and an unchanged records line, with field explanations and explicit
+omissions. These are format examples, not a dataset accepted by `verify`.
