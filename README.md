@@ -31,6 +31,10 @@ Rendering needs a separately installed host and a plugin. The
 provides both and takes you from installation to eight small generated outputs.
 The broader `vst-bench` MCP testing application is not required.
 
+For the revised native macOS Vital Volume all-kept workflow, see the
+[pinned companion guide](https://github.com/itsuzef/vst-bench-dataset-host-public/blob/7a24c962cd67e90765fa1ae5d12be275df4405ae/docs/VITAL.md).
+This is separate from fixture conformance and from Pedalboard repeatability tests.
+
 For a configured compatible host:
 
 ```sh

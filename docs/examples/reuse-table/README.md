@@ -4,8 +4,9 @@
 0.1.1 Method Fixture records excerpt to CSV. No host, audio, model, or training
 is used. **Proposed downstream use:** preparing verified audio/parameter pairs
 for a parameter-estimation study. Neither model performance nor scientific label
-validity is demonstrated. Third-party plugin adaptation below is proposed, not
-implemented or tested; the optional repeatability experiment remains deferred.
+validity is demonstrated. A separate [native Vital Volume walkthrough](https://github.com/itsuzef/vst-bench-dataset-host-public/blob/7a24c962cd67e90765fa1ae5d12be275df4405ae/docs/VITAL.md)
+generates and verifies a two-setting all-kept dataset on macOS arm64. Further
+instrument/control adaptation below remains proposed, not general plugin support.
 
 ## 1. Run the no-build example
 
@@ -65,7 +66,31 @@ whereas quality flags describe pre-normalization audio. Neither a non-silent rec
 nor hash agreement establishes identifiable parameters, perceptual quality or useful
 training labels. No splitting, audio analysis or training pipeline is supplied here.
 
-## 3. Proposed adaptation to another instrument
+## 3. Native Vital Volume and evidence boundaries
+
+The linked Vital guide builds the native companion runner, starts the server with
+an external attempt trace, renders two Volume settings (package index 0, native
+ID 51696) with fixed MIDI, and runs `scripts/verify_vital.py`. Install Vital VST3
+1.0.6 separately and use the revised source, not the fixture-only release tag.
+Each render loads a fresh instance with other controls at startup settings.
+
+| Workflow | Demonstrated boundary |
+| --- | --- |
+| Method Fixture suite | Fixture-specific finalization/resealing and conformance checks. |
+| Native Vital Volume | Core dataset integrity plus complete all-kept external trace/readback comparison; no mixed kept/dropped/failed verification or general control coverage. |
+| Core-only `verify` | Stored artifact consistency; kept records remain separate from drop/failure events, without a complete terminal-attempt ledger. |
+| Separate Pedalboard measurements | Three fresh-process initial-setting renders each of Podolski, Triple Cheese and Vital; not native companion generation or conformance. |
+
+The Vital checker prints `Verified Vital dataset and complete attempt inventory.`
+for an intact all-kept run. A drop/failure is outside that checker's supported path,
+not evidence that every planned attempt has a verified terminal outcome. Keep the
+external trace separately; it is not bound into the core manifest. Neither check
+authenticates origin or establishes label validity. The CSV exporter in this guide
+is **fixture-specific**: do not use its five labels for Vital's single Volume value.
+The third-party instruments and assets retain their own terms; the fixture's
+CC0 output dedication does not apply.
+
+## 4. Proposed further instrument adaptation
 
 A freely available VST3 is not a drop-in replacement for Method Fixture. Do not
 disable the companion identity gate and describe that as support. For a specific
@@ -100,6 +125,7 @@ lawfully obtained instrument, an adapter implementer would need to:
    they must be adapted and validated separately before claiming a complete kept
    attempt ledger or conformance for another instrument.
 
-No specific third-party instrument, compatibility, output identity, general host
-adapter or new conformance result is claimed. This route makes the implementation
-and success criteria explicit without representing the deferred experiment as done.
+Beyond the separately demonstrated native Vital Volume path, this route defines
+proposed implementation and acceptance checks, not measured compatibility or a
+general host adapter. Pedalboard repeatability does not establish native companion
+support for Podolski or Triple Cheese, nor complete mixed-outcome attempt coverage.

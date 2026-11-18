@@ -7,7 +7,7 @@
 | NumPy or SciPy cannot install, or pip attempts a source build | For ordinary use, install the revised package with compatible dependencies without the historical lockfile. Published 0.1.1 retains its original pins. For exact historical reproduction, use its matching Python 3.12 environment. Upgrade pip and record the complete error, Python version, and architecture. See [installation troubleshooting](INSTALL.md#installation-troubleshooting). |
 | Connection refused | Start the companion host; match its port to `render --port`. |
 | Plugin already loaded | Restart the host before another render. |
-| Plugin identity mismatch | Use the parameter manifest for that exact plugin. The companion accepts only its Method Fixture. |
+| Plugin identity mismatch | Use the parameter manifest for that exact plugin. The revised companion supports Method Fixture and the narrow macOS [Vital Volume profile](https://github.com/itsuzef/vst-bench-dataset-host-public/blob/7a24c962cd67e90765fa1ae5d12be275df4405ae/docs/VITAL.md); other instruments/controls require validation. |
 | Host identity/reset/readback capability missing | Use a protocol-compatible host; a generic JSON-RPC server is insufficient. |
 | Source archive verification error | Keep the 0.1.0 archive intact and without `.git`, or use the current Git checkout. Do not mix the two layouts. |
 | Package repository is dirty during validation | Commit intended source changes and keep environments/builds/results outside the checkout. |
