@@ -17,6 +17,13 @@
   same for the host file, and `--expect-identities FILE` (on `render` and `verify`)
   compares both with independently obtained values. A mismatch stops the render
   before any audio is requested. `identify PATH` prints the digest of a plugin.
+- Manifest signing: `sign --manifest M --key KEY` writes `M.sig`, an OpenSSH
+  signature (SSHSIG, `ssh-keygen -Y`) of the manifest file.
+  `verify --allowed-signers FILE [--signer NAME]` requires a valid signature by a
+  key listed in a trust file kept outside the dataset, and
+  `verify --expect-manifest-sha256 HEX` checks the manifest against an externally
+  recorded digest. Either rejects a dataset that was changed and coherently
+  resealed. No new Python dependency.
 - Schema v1 datasets from 0.1.x still verify; the verifier states that they
   carry no per-attempt outcomes.
 

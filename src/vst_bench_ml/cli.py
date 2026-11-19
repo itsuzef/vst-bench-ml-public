@@ -12,7 +12,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from . import attempts, batch, export, identity, introspect, provenance, quality, sampling, seeding
+from . import attempts, batch, export, identity, introspect, provenance, quality, sampling, seeding, signing
 from .client import TestHostClient, TestHostError
 from .midi_signals import signal_names
 
@@ -242,8 +242,25 @@ def cmd_render(args: argparse.Namespace) -> None:
         ) from caught
 
 
-def cmd_verify(args: argparse.Namespace) -> None:
+def cmd_sign(args: argparse.Namespace) -> None:
     try:
+        provenance.verify_manifest(args.manifest, allow_extra_files=True)  # never sign a broken dataset
+        signature = signing.sign(args.manifest, args.key)
+    except provenance.IntegrityError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(f"signed: {signature} (manifest SHA-256 {provenance.sha256_file(args.manifest)})")
+
+
+def cmd_verify(args: argparse.Namespace) -> None:
+    signer = None
+    try:
+        # Outside trust first: a coherently rewritten dataset fails here.
+        if args.expect_manifest_sha256:
+            signing.verify_digest(args.manifest, args.expect_manifest_sha256)
+        if args.allowed_signers:
+            signer = signing.verify(args.manifest, args.allowed_signers, args.signer)
+        elif args.signer:
+            raise provenance.IntegrityError("--signer needs --allowed-signers")
         manifest = provenance.verify_manifest(
             args.manifest,
             allow_extra_files=args.allow_extra_files,
@@ -274,6 +291,14 @@ def cmd_verify(args: argparse.Namespace) -> None:
                    else "expected identities given at render time" if checks["expected"]
                    else "no expected identities; host-reported values are otherwise unchecked")
         print(f"identities: compared {compared} ({against})")
+    if signer:
+        print(f"signature: valid, signed by {signer} according to {args.allowed_signers}")
+    elif signing.signature_path(args.manifest).is_file():
+        print("signature: present but not checked; pass --allowed-signers to check it")
+    else:
+        print("signature: none")
+    if args.expect_manifest_sha256:
+        print("manifest digest: equals the expected SHA-256")
 
 
 def cmd_identify(args: argparse.Namespace) -> None:
@@ -318,6 +343,20 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--expect-identities",
                         help="JSON file of independently obtained host/plugin identities to compare with the manifest")
     verify.set_defaults(func=cmd_verify)
+
+    verify.add_argument("--allowed-signers",
+                        help="OpenSSH allowed-signers file obtained apart from the dataset; require a valid manifest signature")
+    verify.add_argument("--signer", help="require this identity from the allowed-signers file")
+    verify.add_argument("--expect-manifest-sha256",
+                        help="SHA-256 of the manifest file recorded outside the dataset")
+
+    sign = sub.add_parser(
+        "sign", help="sign a verified manifest with an SSH key",
+        description="Write MANIFEST.sig, an OpenSSH signature of the manifest file.",
+    )
+    sign.add_argument("--manifest", required=True)
+    sign.add_argument("--key", required=True, help="SSH private key file (for example an Ed25519 key)")
+    sign.set_defaults(func=cmd_sign)
 
     identify = sub.add_parser(
         "identify", help="print the digest of a plugin file or bundle",

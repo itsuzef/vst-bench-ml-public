@@ -60,11 +60,27 @@ ever the host's word compared with the expected word.
 These checks concern execution. They are separate from the manifest digest, which
 shows the dataset is internally consistent. Neither says who produced the dataset.
 
+## What a signature establishes
+
+`sign` produces an OpenSSH signature of the manifest file under the namespace
+`vst-bench-ml-manifest`. Because the manifest binds every other file by hash, a
+valid signature covers the whole dataset. Verified against an allowed-signers file
+obtained apart from the dataset, it shows that the holder of a listed private key
+signed exactly this manifest. A changed and fully resealed dataset fails, as does a
+signature by any other key or one made for another namespace.
+
+It shows nothing about how the dataset was made. The signer vouches for the bytes,
+not for the host's reports, the identity checks above, or the audio's fidelity. A
+stolen key signs as well as its owner, and trust is only as good as the channel the
+allowed-signers file came through. Key custody, rotation and revocation are the
+producer's responsibility; this package stores no keys.
+
 ## Dataset file inventory
 
 Verification rejects files absent from the artifact inventory, including hidden
 files, and rejects symbolic links and other non-regular entries. Only the manifest,
-records ledger, failure ledger, attempt ledger, and declared outputs are allowed. Empty directories
+records ledger, failure ledger, attempt ledger, declared outputs, and the manifest's
+detached signature (`<manifest>.sig`) are allowed. Empty directories
 are ignored. Keep auxiliary material outside the dataset root. The explicit
 `--allow-extra-files` option retains listed-artifact verification without directory
 completeness or link checks; it never permits missing or changed declared artifacts.

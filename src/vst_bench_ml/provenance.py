@@ -34,6 +34,7 @@ DISTRIBUTED_MODULES = (
     "renderer.py",
     "sampling.py",
     "seeding.py",
+    "signing.py",
 )
 
 
@@ -432,7 +433,8 @@ def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> No
     identities = [artifacts["records"], artifacts["failure_ledger"], *artifacts["outputs"]]
     if "attempt_ledger" in artifacts:
         identities.append(artifacts["attempt_ledger"])
-    allowed = {manifest_name, *(item["path"] for item in identities)}
+    # A detached signature of the manifest (signing.py) may sit beside it.
+    allowed = {manifest_name, manifest_name + ".sig", *(item["path"] for item in identities)}
     try:
         def walk_error(error: OSError) -> None:
             raise error

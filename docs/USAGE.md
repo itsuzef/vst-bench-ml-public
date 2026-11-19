@@ -132,7 +132,48 @@ ends with an `identities:` line saying what was compared and against what. Witho
 an expected file that line says the host-reported values are otherwise unchecked.
 See [DESIGN.md](DESIGN.md#what-the-identity-checks-establish) for the limits.
 
-Datasets written by 0.1.x use schema v1 and have no attempt ledger or identity checks. They verify as
+### Signatures and external digests
+
+The manifest's own digest shows internal consistency only: someone who changes a
+file can recompute every hash and reseal the manifest. Two checks use material kept
+outside the dataset and so survive that.
+
+Sign with an SSH key (Ed25519 recommended). This needs OpenSSH 8.1 or newer:
+
+```sh
+vst-bench-ml sign --manifest output/manifest.json --key ~/.ssh/id_ed25519
+```
+
+This verifies the dataset, then writes `output/manifest.json.sig`. Publish your
+identity and public key as one line of an allowed-signers file, somewhere the
+dataset's recipients can trust independently of the dataset (a paper, a project
+page, a repository you control):
+
+```
+you@example.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...
+```
+
+A recipient checks the signature against that file:
+
+```sh
+vst-bench-ml verify --manifest output/manifest.json --allowed-signers allowed_signers
+```
+
+Add `--signer you@example.org` to require one identity. Without `--allowed-signers`
+a signature is reported as present but not checked. The same check works without
+this package: `ssh-keygen -Y verify -f allowed_signers -I you@example.org -n
+vst-bench-ml-manifest -s manifest.json.sig < manifest.json`.
+
+Alternatively, record the manifest's SHA-256 somewhere outside the dataset when
+you produce it, and check it later with `verify --expect-manifest-sha256 <hex>`.
+
+Keep the private key off shared machines; a passphrase, `ssh-agent` or a hardware
+key all work with `ssh-keygen`. Allowed-signers lines accept `valid-after` and
+`valid-before` options for key rotation. Revocation lists are not checked.
+See [DESIGN.md](DESIGN.md#what-a-signature-establishes).
+
+Datasets written by 0.1.x use schema v1 and have no attempt ledger or identity checks.
+They can still be signed. They verify as
 before, and the attempts line says so: a v1 dataset accounts for kept outputs and
 recorded events, but a planned attempt with neither would go unnoticed.
 
