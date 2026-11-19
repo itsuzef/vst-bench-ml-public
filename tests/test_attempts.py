@@ -193,3 +193,163 @@ def test_historical_v1_dataset_still_verifies_and_states_the_gap(tmp_path, monke
     assert "attempts: not recorded by schema v1" in capsys.readouterr().out
     with pytest.raises(provenance.IntegrityError, match="v1 manifest has no attempt ledger"):
         verify(dataset, host_trace=tmp_path / "absent.jsonl")
+
+
+# Cases from an independent review: each edit is coherently resealed and must still fail.
+
+
+def edit_manifest(dataset, change):
+    manifest = json.loads((dataset / "manifest.json").read_text())
+    change(manifest)
+    provenance.write_manifest(dataset / "manifest.json", manifest)
+
+
+def test_record_outside_the_plan_is_rejected(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch)
+    extra = dataset / "audio" / "p999999_sus_c3.npz"
+    extra.write_bytes(b"smuggled")
+    identity = provenance.file_identity(extra, dataset)
+    records = dataset / "records.jsonl"
+    first = json.loads(records.read_text().splitlines()[0])
+    records.write_text(records.read_text() + json.dumps(
+        {**first, "patch_id": "p999999", "audio_path": identity["path"], "output": identity}) + "\n")
+
+    def change(manifest):
+        manifest["artifacts"]["records"] = provenance.file_identity(records, dataset)
+        manifest["artifacts"]["outputs"].append(identity)
+        manifest["artifacts"]["outputs_sha256"] = provenance.canonical_sha256(manifest["artifacts"]["outputs"])
+        manifest["outcomes"]["kept"] += 1
+
+    edit_manifest(dataset, change)
+    with pytest.raises(provenance.IntegrityError, match="record belongs to no planned attempt: p999999_sus_c3"):
+        verify(dataset)
+
+
+def test_silently_shortened_plan_is_rejected(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch, silent={"p000002_sus_c3", "p000002_gate_c2"})
+    rows = rows_of(dataset)[:4]  # drop the last patch entirely, with its two drop events
+    (dataset / "failures.jsonl").write_text("")
+    plan = [{"patch_id": row["patch_id"], "tier": row["tier"], "param_vector": row["param_vector"]}
+            for row in rows[::2]]
+
+    def change(manifest):
+        manifest["identities"]["rng"]["plan_patches"] = 2
+        manifest["identities"]["rng"]["plan_sha256"] = provenance.canonical_sha256(plan)
+        manifest["outcomes"]["dropped"] = 0
+        manifest["artifacts"]["failure_ledger"] = provenance.file_identity(dataset / "failures.jsonl", dataset)
+
+    edit_manifest(dataset, change)
+    reseal(dataset, rows)
+    with pytest.raises(provenance.IntegrityError, match="does not cover the requested number of patches"):
+        verify(dataset)
+
+
+def test_no_outcome_may_follow_the_failure_that_ended_the_run(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch, fail_at=1, silent={"p000000_sus_c3"})
+    rows = rows_of(dataset)
+    assert [row["disposition"] for row in rows[:3]] == ["dropped", "failed", "not_attempted"]
+    # Move the failure before the drop: the drop then follows the end of the run.
+    rows[0], rows[1] = ({**rows[1], "index": 0, "attempt_id": rows[0]["attempt_id"], "signal": rows[0]["signal"]},
+                        {**rows[0], "index": 1, "attempt_id": rows[1]["attempt_id"], "signal": rows[1]["signal"]})
+    events = [json.loads(line) for line in (dataset / "failures.jsonl").read_text().splitlines()]
+    events[0]["signal"], events[1]["signal"] = events[1]["signal"], events[0]["signal"]
+    (dataset / "failures.jsonl").write_text("".join(json.dumps(event, sort_keys=True) + "\n" for event in events))
+    edit_manifest(dataset, lambda manifest: manifest["artifacts"].update(
+        failure_ledger=provenance.file_identity(dataset / "failures.jsonl", dataset)))
+    reseal(dataset, rows)
+    with pytest.raises(provenance.IntegrityError, match="has an outcome after the failure that ended the run"):
+        verify(dataset)
+
+
+def test_output_must_be_the_attempts_own_file(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch, arguments=("--n", "2"))
+    records = dataset / "records.jsonl"
+    lines = [json.loads(line) for line in records.read_text().splitlines()]
+    lines[1]["output"] = lines[0]["output"]  # second attempt claims the first attempt's audio
+    lines[1]["audio_path"] = lines[0]["output"]["path"]
+    records.write_text("".join(json.dumps(line, sort_keys=True) + "\n" for line in lines))
+    rows = rows_of(dataset)
+    rows[1]["output"] = lines[0]["output"]
+    (dataset / "audio" / "p000001_sus_c3.npz").unlink()
+
+    def change(manifest):
+        manifest["artifacts"]["records"] = provenance.file_identity(records, dataset)
+        manifest["artifacts"]["outputs"] = [lines[0]["output"], lines[0]["output"]]
+        manifest["artifacts"]["outputs_sha256"] = provenance.canonical_sha256(manifest["artifacts"]["outputs"])
+
+    edit_manifest(dataset, change)
+    reseal(dataset, rows)
+    with pytest.raises(provenance.IntegrityError, match="differs from the record or the attempt for p000001_sus_c3"):
+        verify(dataset)
+
+
+def test_ledger_must_restate_its_event_exactly(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch, silent={"p000001_gate_c2"})
+    rows = rows_of(dataset)
+    rows[3]["reason"] = "quality:clipped"
+    reseal(dataset, rows)
+    with pytest.raises(provenance.IntegrityError, match="restates event 0 differently"):
+        verify(dataset)
+
+
+def test_dropped_attempt_needs_the_received_audio_identity(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch, silent={"p000001_gate_c2"})
+    rows = rows_of(dataset)
+    del rows[3]["raw_output"]
+    reseal(dataset, rows)
+    with pytest.raises(provenance.IntegrityError, match="dropped p000001_gate_c2 has no identity for the audio"):
+        verify(dataset)
+
+
+def test_v1_manifest_cannot_whitelist_an_unbound_ledger(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch)
+
+    def change(manifest):
+        manifest["schema"] = provenance.SCHEMA_V1
+        del manifest["attempts"]
+
+    with pytest.raises(provenance.IntegrityError, match="v1 manifest cannot name an attempt ledger"):
+        edit_manifest(dataset, change)
+
+
+@pytest.mark.parametrize("damage", ["row-not-object-fields", "nan", "bad-utf8", "vector-text"])
+def test_malformed_ledger_is_an_integrity_error_not_a_crash(tmp_path, monkeypatch, damage):
+    dataset, _ = render(tmp_path, monkeypatch)
+    rows = rows_of(dataset)
+    if damage == "row-not-object-fields":
+        rows[0]["raw_output"] = "text"
+    elif damage == "nan":
+        rows[0]["param_vector"] = {"0": float("nan")}
+    elif damage == "vector-text":
+        rows[0]["param_vector"] = {"0": "loud"}
+    reseal(dataset, rows)
+    if damage == "bad-utf8":
+        ledger = dataset / "attempts.jsonl"
+        ledger.write_bytes(b"\xff\xfe" + ledger.read_bytes())
+        edit_manifest(dataset, lambda manifest: manifest["artifacts"].update(
+            attempt_ledger=provenance.file_identity(ledger, dataset)))
+    with pytest.raises(provenance.IntegrityError):
+        verify(dataset)
+    with pytest.raises(SystemExit):
+        cli.main(["verify", "--manifest", str(dataset / "manifest.json")])
+
+
+def test_interruption_while_storing_an_output_leaves_a_verifiable_dataset(tmp_path, monkeypatch):
+    stored = []
+    original = provenance.file_identity
+
+    def interrupt_second(path, root):
+        if str(path).endswith(".npz"):
+            stored.append(path)
+            if len(stored) == 2:
+                raise KeyboardInterrupt
+        return original(path, root)
+
+    monkeypatch.setattr(cli.provenance, "file_identity", interrupt_second)
+    with pytest.raises(KeyboardInterrupt):
+        render(tmp_path, monkeypatch)
+    dataset = tmp_path / "dataset"
+    monkeypatch.setattr(cli.provenance, "file_identity", original)
+    manifest = verify(dataset)
+    assert manifest["attempts"]["kept"] == 1 and manifest["attempts"]["failed"] == 1
+    assert sorted(path.name for path in (dataset / "audio").iterdir()) == ["p000000_sus_c3.npz"]

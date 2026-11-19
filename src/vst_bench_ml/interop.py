@@ -41,7 +41,7 @@ STATUS = {
 def load(manifest_path: str | Path) -> dict:
     """Verify the dataset and gather what both exports are built from."""
     path = Path(manifest_path)
-    manifest = verify_manifest(path, allow_extra_files=True)
+    manifest = verify_manifest(path)  # strict: what is exported must itself verify
     root = path.resolve().parent
     artifacts = manifest["artifacts"]
     records = _read_jsonl(root / artifacts["records"]["path"], "records ledger")
@@ -161,9 +161,10 @@ def ro_crate(source: dict, *, prefix: str = "dataset/", license: str | None = No
                            + (f" ({row['error_type']} at {row['stage']})" if row.get("stage") else "")
                            + f". MIDI signal {row['signal']}, sampling tier {row['tier']}.",
             "actionStatus": {"@id": "http://schema.org/" + STATUS[row["disposition"]]},
-            "instrument": [{"@id": "#host"}, {"@id": "#plugin"}],
             "object": parameters,
         }
+        if row["disposition"] != "not_attempted":  # nothing was used for a render that never began
+            action["instrument"] = [{"@id": "#host"}, {"@id": "#plugin"}]
         record = source["records"].get(identifier)
         if row["disposition"] == "kept":
             action["result"] = outputs[row["output"]["path"]]

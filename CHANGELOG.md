@@ -29,6 +29,11 @@
   its parameters, software and recorded identities. Unknowns stay unknown and
   host-reported values are labelled. See docs/INTEROP.md. The optional `interop`
   extra installs independent readers used to test the exports.
+- Verifier hardening after an independent review: records outside the plan, a
+  plan shorter than requested, outcomes after the failure that ended a run, an
+  output that is not the attempt's own file, and ledger fields that differ from
+  their event are rejected; malformed metadata is reported as an integrity
+  error; `sign` and `export` refuse datasets that would not verify strictly.
 - Schema v1 datasets from 0.1.x still verify; the verifier states that they
   carry no per-attempt outcomes.
 

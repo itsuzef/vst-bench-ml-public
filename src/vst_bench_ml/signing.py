@@ -52,10 +52,16 @@ def sign(manifest: str | Path, key: str | Path) -> Path:
     if not key.is_file():
         raise IntegrityError(f"signing key does not exist: {key}")
     target = signature_path(manifest)
-    target.unlink(missing_ok=True)  # ssh-keygen refuses to overwrite
-    result = _ssh_keygen(["-Y", "sign", "-f", str(key), "-n", NAMESPACE, str(manifest)])
+    previous = target.with_name(target.name + ".previous")
+    if target.exists():  # ssh-keygen refuses to overwrite; keep the old one until we succeed
+        target.replace(previous)
+    # resolve(): an absolute path cannot be mistaken for an option
+    result = _ssh_keygen(["-Y", "sign", "-f", str(key), "-n", NAMESPACE, str(manifest.resolve())])
     if result.returncode != 0 or not target.is_file():
+        if previous.exists():
+            previous.replace(target)
         raise IntegrityError(f"signing failed: {_detail(result)}")
+    previous.unlink(missing_ok=True)
     return target
 
 
@@ -74,17 +80,21 @@ def verify(manifest: str | Path, allowed_signers: str | Path, signer: str | None
         raise IntegrityError(f"manifest is not signed: {signature.name} is missing")
     if signer is None:
         found = _ssh_keygen(["-Y", "find-principals", "-s", str(signature), "-f", str(allowed)])
-        names = found.stdout.decode("utf-8", "replace").split()
-        if found.returncode != 0 or not names:
+        candidates = found.stdout.decode("utf-8", "replace").split()
+        if found.returncode != 0 or not candidates:
             raise IntegrityError("signature was not made by any key in the allowed signers file")
-        signer = names[0]
-    result = _ssh_keygen(
-        ["-Y", "verify", "-f", str(allowed), "-I", signer, "-n", NAMESPACE, "-s", str(signature)],
-        stdin=manifest.read_bytes(),
-    )
-    if result.returncode != 0:
-        raise IntegrityError(f"manifest signature is not valid for {signer}: {_detail(result)}")
-    return signer
+    else:
+        candidates = [signer]
+    message = manifest.read_bytes()
+    for candidate in candidates:  # a key may be listed under several identities
+        result = _ssh_keygen(
+            ["-Y", "verify", "-f", str(allowed), "-I", candidate, "-n", NAMESPACE, "-s", str(signature)],
+            stdin=message,
+        )
+        if result.returncode == 0:
+            return candidate
+    hint = "" if signer else " (if the key is listed under another identity, name it with --signer)"
+    raise IntegrityError(f"manifest signature is not valid for {candidates[0]}: {_detail(result)}{hint}")
 
 
 def verify_digest(manifest: str | Path, expected_sha256: str) -> None:

@@ -144,3 +144,38 @@ def test_signature_file_does_not_break_the_inventory(signed):
     dataset, _, _ = signed
     assert signing.signature_path(dataset / "manifest.json").name == "manifest.json.sig"
     provenance.verify_manifest(dataset / "manifest.json")
+
+
+def test_dataset_with_unlisted_files_is_not_signed(signed):
+    dataset, trust, _ = signed
+    (dataset / "notes.txt").write_text("extra")
+    with pytest.raises(SystemExit, match="unlisted dataset file"):
+        cli.main(["sign", "--manifest", str(dataset / "manifest.json"), "--key", str(trust / "producer")])
+
+
+def test_failed_signing_keeps_the_previous_signature(signed, tmp_path):
+    dataset, _, allowed = signed
+    before = (dataset / "manifest.json.sig").read_bytes()
+    not_a_key = tmp_path / "not-a-key"
+    not_a_key.write_text("this is not a private key")
+    with pytest.raises(SystemExit, match="signing failed"):
+        cli.main(["sign", "--manifest", str(dataset / "manifest.json"), "--key", str(not_a_key)])
+    assert (dataset / "manifest.json.sig").read_bytes() == before
+    check(dataset, "--allowed-signers", allowed)
+
+
+@pytest.mark.parametrize("option", ["--allowed-signers", "--expect-manifest-sha256"])
+def test_empty_trust_value_fails_instead_of_skipping_the_check(signed, option):
+    dataset, _, _ = signed
+    with pytest.raises(SystemExit):
+        check(dataset, option, "")
+
+
+def test_key_listed_under_two_identities_needs_the_signer_named(signed):
+    # ssh-keygen reports only the first identity of a key, here one limited to another namespace.
+    dataset, trust, allowed = signed
+    key = (trust / "producer.pub").read_text()
+    allowed.write_text(f'other@example.org namespaces="file" {key}producer@example.org {key}')
+    with pytest.raises(SystemExit, match="name it with --signer"):
+        check(dataset, "--allowed-signers", allowed)
+    check(dataset, "--allowed-signers", allowed, "--signer", "producer@example.org")

@@ -156,3 +156,18 @@ def test_independent_libraries_read_the_exports(tmp_path, monkeypatch):
     assert set(files) == {key for key, node in graph.items() if node["@type"] == "File"}
     assert files["dataset/audio/p000000_sus_c3.npz"]["sha256"] == graph["dataset/audio/p000000_sus_c3.npz"]["sha256"]
     assert loaded.root_dataset["license"].id == "#license-not-stated"
+
+
+def test_dataset_with_extra_files_is_not_exported_and_leaves_nothing_behind(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch, arguments=("--n", "1"))
+    (dataset / "notes.txt").write_text("extra")
+    with pytest.raises(SystemExit, match="unlisted dataset file"):
+        cli.main(["export", "--manifest", str(dataset / "manifest.json"), "--ro-crate", str(tmp_path / "crate")])
+    assert not (tmp_path / "crate").exists()
+
+
+def test_unattempted_render_claims_no_instrument(tmp_path, monkeypatch):
+    dataset, _ = render(tmp_path, monkeypatch, fail_at=1)
+    _, graph, _ = export(tmp_path, dataset)
+    assert "instrument" not in graph["#attempt-p000002_gate_c2"]
+    assert "instrument" in graph["#attempt-p000000_sus_c3"]

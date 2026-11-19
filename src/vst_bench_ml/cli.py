@@ -45,9 +45,14 @@ def _processor(
             samples, sample_rate, target_lufs
         )
         npz_path = audio_dir / (Path(wav_path).stem + ".npz")
-        export.save_npz(normalized, sample_rate, str(npz_path))
-        os.remove(wav_path)
-        output_identity = provenance.file_identity(npz_path, dataset_root)
+        try:
+            export.save_npz(normalized, sample_rate, str(npz_path))
+            os.remove(wav_path)
+            output_identity = provenance.file_identity(npz_path, dataset_root)
+        except BaseException:
+            # No record will exist for this output: do not leave an unlisted file.
+            npz_path.unlink(missing_ok=True)
+            raise
         record.update(
             {
                 "audio_path": output_identity["path"],
@@ -244,7 +249,7 @@ def cmd_render(args: argparse.Namespace) -> None:
 
 def cmd_sign(args: argparse.Namespace) -> None:
     try:
-        provenance.verify_manifest(args.manifest, allow_extra_files=True)  # never sign a broken dataset
+        provenance.verify_manifest(args.manifest)  # never sign a dataset that would not verify
         signature = signing.sign(args.manifest, args.key)
     except provenance.IntegrityError as exc:
         raise SystemExit(str(exc)) from exc
@@ -255,11 +260,12 @@ def cmd_verify(args: argparse.Namespace) -> None:
     signer = None
     try:
         # Outside trust first: a coherently rewritten dataset fails here.
-        if args.expect_manifest_sha256:
+        # "is not None": an empty value (an unset shell variable) must fail, not skip the check.
+        if args.expect_manifest_sha256 is not None:
             signing.verify_digest(args.manifest, args.expect_manifest_sha256)
-        if args.allowed_signers:
+        if args.allowed_signers is not None:
             signer = signing.verify(args.manifest, args.allowed_signers, args.signer)
-        elif args.signer:
+        elif args.signer is not None:
             raise provenance.IntegrityError("--signer needs --allowed-signers")
         manifest = provenance.verify_manifest(
             args.manifest,
@@ -297,7 +303,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
         print("signature: present but not checked; pass --allowed-signers to check it")
     else:
         print("signature: none")
-    if args.expect_manifest_sha256:
+    if args.expect_manifest_sha256 is not None:
         print("manifest digest: equals the expected SHA-256")
 
 
@@ -309,7 +315,7 @@ def cmd_export(args: argparse.Namespace) -> None:
             print(f"wrote RO-Crate 1.1: {interop.write_ro_crate(args.manifest, args.ro_crate, license=args.license)}")
         if args.prov:
             print(f"wrote W3C PROV-JSON: {interop.write_prov(args.manifest, args.prov)}")
-    except provenance.IntegrityError as exc:
+    except (provenance.IntegrityError, KeyError, TypeError) as exc:
         raise SystemExit(str(exc)) from exc
 
 

@@ -159,7 +159,8 @@ A recipient checks the signature against that file:
 vst-bench-ml verify --manifest output/manifest.json --allowed-signers allowed_signers
 ```
 
-Add `--signer you@example.org` to require one identity. Without `--allowed-signers`
+Add `--signer you@example.org` to require one identity; this is needed when the
+same key is listed under several identities. Without `--allowed-signers`
 a signature is reported as present but not checked. The same check works without
 this package: `ssh-keygen -Y verify -f allowed_signers -I you@example.org -n
 vst-bench-ml-manifest -s manifest.json.sig < manifest.json`.
@@ -177,8 +178,8 @@ They can still be signed. They verify as
 before, and the attempts line says so: a v1 dataset accounts for kept outputs and
 recorded events, but a planned attempt with neither would go unnoticed.
 
-By default the dataset directory may contain only the manifest itself, the two
-bound ledgers, and declared outputs. Hidden files are checked too. Symbolic links
+By default the dataset directory may contain only the manifest itself, its
+detached signature (`<manifest>.sig`), the bound ledgers, and declared outputs. Hidden files are checked too. Symbolic links
 (including directory and dangling links) and other non-regular entries are rejected;
 empty directories are ignored. Keep notes, logs, and other auxiliary files outside
 the dataset directory. Renaming the manifest is allowed.

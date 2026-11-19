@@ -46,6 +46,8 @@ one term to the 1.1 context, `sha256` (`http://schema.org/sha256`).
   compared them; the exports label them and carry the check result.
 - A schema v1 dataset has no attempt ledger. Its exports contain kept renders
   only and say so in the run description and on the plan.
+- The manifest records when the run completed, not a publication date. The crate's
+  required `datePublished` is that completion time.
 - Records written by a companion validation workflow outside the core manifest
   (for example its kept-attempt ledger) are not exported.
 

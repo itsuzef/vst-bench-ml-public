@@ -344,6 +344,8 @@ def validate_manifest(manifest: dict) -> None:
         for key in ("planned", "kept", "dropped", "failed", "not_attempted"):
             if not isinstance(declared.get(key), int) or declared[key] < 0:
                 raise IntegrityError(f"missing or malformed attempt count: {key}")
+    if manifest["schema"] == SCHEMA_V1 and "attempt_ledger" in artifacts:
+        raise IntegrityError("a v1 manifest cannot name an attempt ledger")
     for key in bound:
         artifact = _require_mapping(artifacts, key, "artifacts")
         _require_values(artifact, ("path", "bytes", "sha256"), f"artifacts.{key}")
@@ -424,7 +426,9 @@ def _read_jsonl(path: Path, label: str) -> list[dict]:
                     f"{label} entry is not an object at line {line_number}"
                 )
             entries.append(value)
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError) as exc:  # includes JSON and UTF-8 decoding errors
+        if isinstance(exc, IntegrityError):
+            raise
         raise IntegrityError(f"{label} is malformed: {path}") from exc
     return entries
 
@@ -432,7 +436,7 @@ def _read_jsonl(path: Path, label: str) -> list[dict]:
 def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> None:
     """Reject unlisted files and links without traversing linked directories."""
     identities = [artifacts["records"], artifacts["failure_ledger"], *artifacts["outputs"]]
-    if "attempt_ledger" in artifacts:
+    if "attempt_ledger" in artifacts:  # present and hash-bound in schema v2 only
         identities.append(artifacts["attempt_ledger"])
     # A detached signature of the manifest (signing.py) may sit beside it.
     allowed = {manifest_name, manifest_name + ".sig", *(item["path"] for item in identities)}
@@ -456,7 +460,21 @@ def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> No
         raise IntegrityError(f"cannot inspect dataset file inventory: {exc}") from exc
 
 
-def verify_manifest(
+def verify_manifest(path: str | Path, **options) -> dict:
+    """Verify a sealed dataset; see ``_verify_manifest`` for the options.
+
+    Any malformed structure in the manifest, ledgers or trace is reported as an
+    IntegrityError, never as a bare KeyError or TypeError.
+    """
+    try:
+        return _verify_manifest(path, **options)
+    except IntegrityError:
+        raise
+    except (KeyError, TypeError, AttributeError, ValueError, IndexError) as exc:
+        raise IntegrityError(f"malformed dataset metadata: {exc!r}") from exc
+
+
+def _verify_manifest(
     path: str | Path,
     *,
     allow_extra_files: bool = False,
@@ -472,7 +490,7 @@ def verify_manifest(
     manifest_path = Path(path)
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError) as exc:  # includes JSON and UTF-8 decoding errors
         raise IntegrityError(
             f"provenance manifest is unreadable: {manifest_path}"
         ) from exc

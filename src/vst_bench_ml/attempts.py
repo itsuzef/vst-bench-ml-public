@@ -135,6 +135,10 @@ def verify_ledger(
         and isinstance(rng.get("plan_patches"), int),
         "manifest does not state the plan size, signals and signal mode",
     )
+    _require(
+        rng["plan_patches"] == rng.get("requested_patches") == request.get("requested_patches"),
+        "the plan does not cover the requested number of patches",
+    )
     expected = expected_ids(rng["plan_patches"], request["signals"], request["signal_mode"])
 
     seen: set[str] = set()
@@ -188,8 +192,15 @@ def verify_ledger(
         record_by_id[identifier] = record
     claimed_events: dict[int, list[dict]] = {}
     stopped = False
+    failure = None  # event sequence of the failure that ended the run
     for row in rows:
         identifier, disposition = row["attempt_id"], row["disposition"]
+        _require(
+            failure is None
+            or disposition == "not_attempted"
+            or (disposition == "failed" and row.get("event_sequence") == failure),
+            f"{identifier} has an outcome after the failure that ended the run",
+        )
         _require(
             (identifier in record_by_id) == (disposition == "kept"),
             f"conflicting outcome for {identifier}: {disposition} "
@@ -200,11 +211,19 @@ def verify_ledger(
             _require("raw_output" not in row, f"unattempted {identifier} has an output")
             continue
         _require(not stopped, f"{identifier} has an outcome after the run stopped")
+        if disposition in {"kept", "dropped"}:  # both were rendered and received
+            raw = row.get("raw_output")
+            _require(
+                isinstance(raw, dict) and isinstance(raw.get("sha256"), str) and isinstance(raw.get("bytes"), int),
+                f"{disposition} {identifier} has no identity for the audio received from the host",
+            )
         if disposition == "kept":
             record = record_by_id[identifier]
             _require(
-                row.get("output") == record.get("output"),
-                f"output identity differs from the record for {identifier}",
+                row.get("output") == record.get("output")
+                and isinstance(row.get("output"), dict)
+                and row["output"].get("path") == f"audio/{identifier}.npz",
+                f"output identity differs from the record or the attempt for {identifier}",
             )
             vector = record.get("param_vector")
             _require(
@@ -216,7 +235,6 @@ def verify_ledger(
                 ),
                 f"record parameters differ from the plan for {identifier}",
             )
-            _require("raw_output" in row, f"kept {identifier} has no raw output identity")
         else:
             sequence = row.get("event_sequence")
             _require(
@@ -231,6 +249,13 @@ def verify_ledger(
                 and event.get("signal") in ({row["signal"]} if status == "drop" else {row["signal"], None}),
                 f"{disposition} {identifier} does not match event {sequence}",
             )
+            copied = ("reason",) if status == "drop" else ("stage", "error_type")
+            _require(
+                all(row.get(key) == event.get(key) for key in copied),
+                f"{disposition} {identifier} restates event {sequence} differently",
+            )
+            if status == "failure":
+                failure = sequence
             claimed_events.setdefault(sequence, []).append(row)
     for sequence, event in enumerate(events):
         claimed = claimed_events.get(sequence, [])
@@ -244,8 +269,16 @@ def verify_ledger(
                 f"patch failure {sequence} does not cover every attempt of the patch",
             )
 
+    kept_ids = {row["attempt_id"] for row in rows if row["disposition"] == "kept"}
+    for identifier in sorted(set(record_by_id) - kept_ids):
+        _require(False, f"record belongs to no planned attempt: {identifier}")
     declared = manifest.get("attempts")
     _require(declared == counts(rows), "manifest attempt counts do not match the ledger")
+    outcomes = manifest["outcomes"]
+    _require(
+        (outcomes["kept"], outcomes["dropped"]) == (declared["kept"], declared["dropped"]),
+        "outcome counts do not match the attempt ledger",
+    )
     status = manifest["observation"]["status"]
     unfinished = declared["failed"] + declared["not_attempted"]
     _require(
@@ -286,7 +319,8 @@ def verify_host_trace(rows: list[dict], trace: list[dict]) -> None:
             f"host trace has no render for {disposition} {identifier}",
         )
         if "raw_output" in row:
-            output = entry.get("output") or {}
+            output = entry.get("output")
+            _require(isinstance(output, dict), f"host trace render has no output for {identifier}")
             _require(
                 output.get("sha256") == row["raw_output"]["sha256"]
                 and output.get("bytes") == row["raw_output"]["bytes"],
