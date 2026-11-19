@@ -30,7 +30,8 @@ def signed(tmp_path, monkeypatch):
     trust.mkdir()
     key = make_key(trust, "producer")
     allowed = trust / "allowed_signers"
-    allowed.write_text(f"producer@example.org {key.with_suffix('.pub').read_text(encoding="utf-8")}")
+    public_key = key.with_suffix(".pub").read_text(encoding="utf-8")
+    allowed.write_text(f"producer@example.org {public_key}")
     cli.main(["sign", "--manifest", str(dataset / "manifest.json"), "--key", str(key)])
     return dataset, trust, allowed
 
