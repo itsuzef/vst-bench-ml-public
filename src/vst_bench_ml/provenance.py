@@ -27,6 +27,7 @@ DISTRIBUTED_MODULES = (
     "client.py",
     "export.py",
     "identity.py",
+    "interop.py",
     "introspect.py",
     "midi_signals.py",
     "provenance.py",

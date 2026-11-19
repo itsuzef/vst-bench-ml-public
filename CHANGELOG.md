@@ -24,6 +24,11 @@
   `verify --expect-manifest-sha256 HEX` checks the manifest against an externally
   recorded digest. Either rejects a dataset that was changed and coherently
   resealed. No new Python dependency.
+- `export --ro-crate DIR --prov FILE` projects a verified dataset into an RO-Crate
+  1.1 directory and a W3C PROV-JSON document: files, the run, every attempt and
+  its parameters, software and recorded identities. Unknowns stay unknown and
+  host-reported values are labelled. See docs/INTEROP.md. The optional `interop`
+  extra installs independent readers used to test the exports.
 - Schema v1 datasets from 0.1.x still verify; the verifier states that they
   carry no per-attempt outcomes.
 

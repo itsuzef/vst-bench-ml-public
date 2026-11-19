@@ -201,6 +201,12 @@ Verification checks internal consistency; it does not authenticate the producer,
 prove that an untrusted host reported honestly, or establish scientific usefulness.
 See `render --help` and `verify --help` for the installed command interface.
 
+## Export provenance
+
+`vst-bench-ml export --manifest output/manifest.json --ro-crate crate --prov prov.json`
+writes an RO-Crate 1.1 directory and a W3C PROV-JSON document from a verified
+dataset. See [INTEROP.md](INTEROP.md) for the mapping and its limits.
+
 ## Inspect output without a host
 
 [Fixture output examples](examples/fixture-output/README.md) provide an abbreviated

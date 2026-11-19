@@ -12,7 +12,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from . import attempts, batch, export, identity, introspect, provenance, quality, sampling, seeding, signing
+from . import attempts, batch, export, identity, interop, introspect, provenance, quality, sampling, seeding, signing
 from .client import TestHostClient, TestHostError
 from .midi_signals import signal_names
 
@@ -301,6 +301,18 @@ def cmd_verify(args: argparse.Namespace) -> None:
         print("manifest digest: equals the expected SHA-256")
 
 
+def cmd_export(args: argparse.Namespace) -> None:
+    if not args.ro_crate and not args.prov:
+        raise SystemExit("choose --ro-crate DIR and/or --prov FILE")
+    try:
+        if args.ro_crate:
+            print(f"wrote RO-Crate 1.1: {interop.write_ro_crate(args.manifest, args.ro_crate, license=args.license)}")
+        if args.prov:
+            print(f"wrote W3C PROV-JSON: {interop.write_prov(args.manifest, args.prov)}")
+    except provenance.IntegrityError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
 def cmd_identify(args: argparse.Namespace) -> None:
     try:
         print(f"{identity.path_digest(args.path)}  {identity.PATH_DIGEST}  {args.path}")
@@ -357,6 +369,16 @@ def build_parser() -> argparse.ArgumentParser:
     sign.add_argument("--manifest", required=True)
     sign.add_argument("--key", required=True, help="SSH private key file (for example an Ed25519 key)")
     sign.set_defaults(func=cmd_sign)
+
+    exporter = sub.add_parser(
+        "export", help="export provenance as RO-Crate and/or W3C PROV",
+        description="Project a verified dataset's manifest and ledgers into standard provenance formats.",
+    )
+    exporter.add_argument("--manifest", required=True)
+    exporter.add_argument("--ro-crate", help="new directory: the dataset copied under dataset/ plus ro-crate-metadata.json")
+    exporter.add_argument("--prov", help="new file for a W3C PROV-JSON document")
+    exporter.add_argument("--license", help="licence URL for the crate; if omitted the crate says none is stated")
+    exporter.set_defaults(func=cmd_export)
 
     identify = sub.add_parser(
         "identify", help="print the digest of a plugin file or bundle",
