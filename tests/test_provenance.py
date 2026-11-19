@@ -37,8 +37,9 @@ def identity_payload(tmp_path, plan_identity):
     records.write_text("")
     failures.write_text("")
     dependencies = [{"distribution": "numpy", "version": "2.2.6"}]
+    # A historical v1 manifest: these checks apply to every schema version.
     return {
-        "schema": provenance.SCHEMA,
+        "schema": provenance.SCHEMA_V1,
         "observation": {
             "started_at": "2026-09-08T00:00:00Z",
             "completed_at": "2026-09-08T00:00:01Z",

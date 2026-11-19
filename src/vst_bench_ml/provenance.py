@@ -15,10 +15,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "vst-bench-ml.provenance/v1"
+SCHEMA_V1 = "vst-bench-ml.provenance/v1"
+SCHEMA = "vst-bench-ml.provenance/v2"  # adds the attempt ledger (attempts.py)
+SUPPORTED_SCHEMAS = (SCHEMA_V1, SCHEMA)
 RUNTIME_DEPENDENCIES = ("numpy", "soundfile", "pyloudnorm", "scipy")
 DISTRIBUTED_MODULES = (
     "__init__.py",
+    "attempts.py",
     "batch.py",
     "cli.py",
     "client.py",
@@ -232,7 +235,7 @@ def _require_sha256(value: dict, key: str, context: str) -> None:
 
 
 def validate_manifest(manifest: dict) -> None:
-    if not isinstance(manifest, dict) or manifest.get("schema") != SCHEMA:
+    if not isinstance(manifest, dict) or manifest.get("schema") not in SUPPORTED_SCHEMAS:
         raise IntegrityError("unsupported or missing provenance schema")
     identities = _require_mapping(manifest, "identities", "manifest")
     package = _require_mapping(identities, "package", "identities")
@@ -330,7 +333,14 @@ def validate_manifest(manifest: dict) -> None:
         if not isinstance(outcomes.get(key), int) or outcomes[key] < 0:
             raise IntegrityError(f"missing or malformed outcome count: {key}")
     artifacts = _require_mapping(manifest, "artifacts", "manifest")
-    for key in ("records", "failure_ledger"):
+    bound = ["records", "failure_ledger"]
+    if manifest["schema"] != SCHEMA_V1:
+        bound.append("attempt_ledger")
+        declared = _require_mapping(manifest, "attempts", "manifest")
+        for key in ("planned", "kept", "dropped", "failed", "not_attempted"):
+            if not isinstance(declared.get(key), int) or declared[key] < 0:
+                raise IntegrityError(f"missing or malformed attempt count: {key}")
+    for key in bound:
         artifact = _require_mapping(artifacts, key, "artifacts")
         _require_values(artifact, ("path", "bytes", "sha256"), f"artifacts.{key}")
         _require_sha256(artifact, "sha256", f"artifacts.{key}")
@@ -418,6 +428,8 @@ def _read_jsonl(path: Path, label: str) -> list[dict]:
 def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> None:
     """Reject unlisted files and links without traversing linked directories."""
     identities = [artifacts["records"], artifacts["failure_ledger"], *artifacts["outputs"]]
+    if "attempt_ledger" in artifacts:
+        identities.append(artifacts["attempt_ledger"])
     allowed = {manifest_name, *(item["path"] for item in identities)}
     try:
         def walk_error(error: OSError) -> None:
@@ -439,7 +451,14 @@ def verify_file_inventory(root: Path, manifest_name: str, artifacts: dict) -> No
         raise IntegrityError(f"cannot inspect dataset file inventory: {exc}") from exc
 
 
-def verify_manifest(path: str | Path, *, allow_extra_files: bool = False) -> dict:
+def verify_manifest(
+    path: str | Path,
+    *,
+    allow_extra_files: bool = False,
+    host_trace: str | Path | None = None,
+) -> dict:
+    """Verify a sealed dataset. ``host_trace`` is a host-written attempt trace
+    kept outside the dataset; it is compared with the attempt ledger (v2)."""
     manifest_path = Path(path)
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -497,6 +516,16 @@ def verify_manifest(path: str | Path, *, allow_extra_files: bool = False) -> dic
         raise IntegrityError("failure ledger contains an unknown status")
     if drops != outcomes["dropped"] or failures != outcomes["failures"]:
         raise IntegrityError("failure ledger does not match outcome counts")
+    if manifest["schema"] == SCHEMA_V1:
+        if host_trace is not None:
+            raise IntegrityError("a v1 manifest has no attempt ledger to compare with a host trace")
+        return manifest
+    from . import attempts
+
+    rows = _read_jsonl(_verify_artifact(root, artifacts["attempt_ledger"]), "attempt ledger")
+    attempts.verify_ledger(manifest, rows, records, events)
+    if host_trace is not None:
+        attempts.verify_host_trace(rows, _read_jsonl(Path(host_trace), "host trace"))
     return manifest
 
 

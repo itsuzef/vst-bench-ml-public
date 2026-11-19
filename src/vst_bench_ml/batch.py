@@ -12,7 +12,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from . import midi_signals
+from . import attempts, midi_signals
 from .client import TestHostClient
 from .sampling import to_param_list
 
@@ -59,10 +59,8 @@ def generate(
             event_sink(event)
 
     for i, (tier, vec) in enumerate(sampling_plan):
-        patch_id = f"p{i:06d}"
-        patch_signals = (
-            signals if signal_mode == "all" else (signals[i % len(signals)],)
-        )
+        patch_id = attempts.patch_id(i)
+        patch_signals = attempts.signals_for_patch(i, signals, signal_mode)
         try:
             client.set_parameters(to_param_list(vec))
         except (Exception, KeyboardInterrupt) as exc:
@@ -80,7 +78,7 @@ def generate(
             raise
         for sig in patch_signals:
             midi = midi_signals.build(sig, num_samples)
-            wav_path = wav_dir / f"{patch_id}_{sig}.wav"
+            wav_path = wav_dir / f"{attempts.attempt_id(patch_id, sig)}.wav"
             record = {
                 "patch_id": patch_id,
                 "tier": tier,

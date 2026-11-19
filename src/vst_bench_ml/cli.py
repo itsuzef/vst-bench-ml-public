@@ -12,17 +12,27 @@ import os
 import tempfile
 from pathlib import Path
 
-from . import batch, export, introspect, provenance, quality, sampling, seeding
+from . import attempts, batch, export, introspect, provenance, quality, sampling, seeding
 from .client import TestHostClient, TestHostError
 from .midi_signals import signal_names
 
 
 def _processor(
-    audio_dir: Path, target_lufs: float, keep_bad: bool, sink, dataset_root: Path
+    audio_dir: Path,
+    target_lufs: float,
+    keep_bad: bool,
+    sink,
+    dataset_root: Path,
+    raw_outputs: dict,
 ):
     audio_dir.mkdir(parents=True, exist_ok=True)
 
     def process(record: dict, wav_path: str):
+        # Identity of the audio as received from the host, before any processing.
+        raw_outputs[attempts.attempt_id(record["patch_id"], record["signal"])] = {
+            "bytes": os.path.getsize(wav_path),
+            "sha256": provenance.sha256_file(wav_path),
+        }
         samples, sample_rate = quality.load_wav(wav_path)
         report = quality.assess(samples, sample_rate)
         if not keep_bad and (report["silent"] or report["clipped"]):
@@ -107,8 +117,10 @@ def cmd_render(args: argparse.Namespace) -> None:
     out.mkdir(parents=True, exist_ok=True)
     records_path = out / "records.jsonl"
     ledger_path = out / "failures.jsonl"
+    attempts_path = out / attempts.LEDGER_NAME
     records = []
     events = []
+    raw_outputs = {}
     caught = None
 
     with (
@@ -127,7 +139,7 @@ def cmd_render(args: argparse.Namespace) -> None:
             ledger_sink.flush()
 
         process = _processor(
-            out / "audio", args.target_lufs, args.keep_bad, record_sink, out
+            out / "audio", args.target_lufs, args.keep_bad, record_sink, out, raw_outputs
         )
         try:
             with tempfile.TemporaryDirectory(prefix="vst_bench_ml_") as wav_dir:
@@ -150,6 +162,10 @@ def cmd_render(args: argparse.Namespace) -> None:
     dropped = sum(event["status"] == "drop" for event in events)
     failures = sum(event["status"] == "failure" for event in events)
     outputs = [record["output"] for record in records]
+    rows = attempts.build_ledger(plan, signals, args.signal_mode, records, events, raw_outputs)
+    attempts_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8"
+    )
     payload = {
         "schema": provenance.SCHEMA,
         "observation": {
@@ -192,9 +208,11 @@ def cmd_render(args: argparse.Namespace) -> None:
             "dropped": dropped,
             "failures": failures,
         },
+        "attempts": attempts.counts(rows),
         "artifacts": {
             "records": provenance.file_identity(records_path, out),
             "failure_ledger": provenance.file_identity(ledger_path, out),
+            "attempt_ledger": provenance.file_identity(attempts_path, out),
             "outputs": outputs,
             "outputs_sha256": provenance.canonical_sha256(outputs),
         },
@@ -212,7 +230,11 @@ def cmd_render(args: argparse.Namespace) -> None:
 
 def cmd_verify(args: argparse.Namespace) -> None:
     try:
-        manifest = provenance.verify_manifest(args.manifest, allow_extra_files=args.allow_extra_files)
+        manifest = provenance.verify_manifest(
+            args.manifest,
+            allow_extra_files=args.allow_extra_files,
+            host_trace=args.host_trace,
+        )
     except provenance.IntegrityError as exc:
         raise SystemExit(str(exc)) from exc
     outcomes = manifest["outcomes"]
@@ -221,6 +243,16 @@ def cmd_verify(args: argparse.Namespace) -> None:
         f"verified: {outcomes['kept']} kept, {outcomes['dropped']} dropped, "
         f"{outcomes['failures']} failures ({scope})"
     )
+    if manifest["schema"] == provenance.SCHEMA_V1:
+        print("attempts: not recorded by schema v1; planned attempts without a kept output or event are not accounted for")
+    else:
+        planned = manifest["attempts"]
+        trace = "; host trace agrees" if args.host_trace else ""
+        print(
+            f"attempts: {planned['planned']} planned, each with one outcome: "
+            f"{planned['kept']} kept, {planned['dropped']} dropped, {planned['failed']} failed, "
+            f"{planned['not_attempted']} not attempted{trace}"
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -249,6 +281,8 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--manifest", required=True)
     verify.add_argument("--allow-extra-files", action="store_true",
                         help="check listed artifacts only; skip directory inventory and link checks")
+    verify.add_argument("--host-trace",
+                        help="host-written attempt trace kept outside the dataset; compare it with the attempt ledger")
     verify.set_defaults(func=cmd_verify)
     return parser
 

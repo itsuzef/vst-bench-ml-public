@@ -44,9 +44,13 @@ compatible software stack; it does not guarantee audio identity across systems.
   and an integrity hash of the manifest payload.
 - `records.jsonl`: one JSON object for each kept output, including parameters,
   MIDI signal, quality observations, and the relative audio path.
-- `failures.jsonl`: core drop/failure events. It can be empty after a successful
-  basic render. The separate companion validation workflow extends the ledger
-  with terminal entries for all attempts and negative-case evidence.
+- `failures.jsonl`: drop and failure events. It can be empty after a successful
+  render.
+- `attempts.jsonl`: one line for every planned attempt, in render order, with its
+  parameters and exactly one outcome: `kept` (with the output identity), `dropped`
+  (with the quality reason), `failed` (with the error) or `not_attempted` (the run
+  stopped first). Kept and dropped lines also carry the size and SHA-256 of the
+  audio as received from the host, before normalization.
 - `audio/*.npz`: NumPy audio arrays and sample rate. These are not WAV files.
 
 Inspect an array without assuming its shape:
@@ -65,11 +69,38 @@ with np.load("output/audio/p000000_sus_c3.npz", allow_pickle=False) as item:
 vst-bench-ml verify --manifest output/manifest.json
 ```
 
-Success prints `verified: N kept, D dropped, F failures (artifact integrity and file inventory)`
-and exits with status 0.
+Success prints `verified: N kept, D dropped, F failures (artifact integrity and file inventory)`,
+then one line accounting for the planned attempts, and exits with status 0.
 Added files, changed/missing artifacts, or invalid identity fields produce an error and nonzero
-exit status. A valid failed-run manifest can still verify: check the observation
-status and failure count before treating a dataset as complete.
+exit status. A valid failed-run manifest can still verify: the attempts line then
+reports failed and unattempted renders, and the observation status is `failed`.
+
+### Attempt accounting
+
+The plan size, signal list and signal mode in the manifest fix the attempt IDs
+(`p000000_sus_c3`, ...) before rendering. Verification requires one ledger line per
+planned ID, in order, with no duplicates or additions. It recomputes the sampling-plan
+digest from the ledger's parameter vectors, matches every kept line to its record and
+stored output, and matches every dropped or failed line to its event. A run with a
+failed or unattempted render cannot carry the status `completed`.
+
+If the host wrote its own attempt trace outside the dataset, compare the two:
+
+```sh
+vst-bench-ml verify --manifest output/manifest.json --host-trace host-trace.jsonl
+```
+
+Each trace line needs `attempt_id` and `outcome` (`rendered` or `failed`); a rendered
+line also needs `output.bytes` and `output.sha256` of the audio file the host wrote.
+Every kept or dropped attempt must have a rendered trace line with the same audio
+hash the package received; an unattempted one must have none; a failed one may
+have a failed line or none, since a host can die before writing it. The companion host
+writes such a trace with `--attempt-trace`. The trace is only as trustworthy as the
+host and the place it was kept.
+
+Datasets written by 0.1.x use schema v1 and have no attempt ledger. They verify as
+before, and the attempts line says so: a v1 dataset accounts for kept outputs and
+recorded events, but a planned attempt with neither would go unnoticed.
 
 By default the dataset directory may contain only the manifest itself, the two
 bound ledgers, and declared outputs. Hidden files are checked too. Symbolic links

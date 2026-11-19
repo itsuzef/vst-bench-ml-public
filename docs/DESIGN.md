@@ -23,7 +23,8 @@ repository history but are excluded from source and wheel artifacts.
 
 ## Provenance contract
 
-A render manifest uses `vst-bench-ml.provenance/v1` and binds four layers:
+A render manifest uses `vst-bench-ml.provenance/v2` and binds four layers
+(v1, written by 0.1.x, lacks the attempt ledger and is still verified):
 
 1. execution identity: package source/version, runtime environment, installed
    NumPy, SoundFile, pyloudnorm, and SciPy versions, RNG derivation, and normalization method;
@@ -31,8 +32,8 @@ A render manifest uses `vst-bench-ml.provenance/v1` and binds four layers:
    identities;
 3. observation: UTC start/completion times and completed or failed status;
 4. evidence: the sampling-plan digest, records, append-only failure/drop ledger,
-   per-output byte count and SHA-256, aggregate counts, and manifest payload
-   digest.
+   the attempt ledger with one outcome per planned attempt, per-output byte count
+   and SHA-256, aggregate counts, and manifest payload digest.
 
 The verifier resolves only relative artifact paths under the dataset root and
 checks all bound sizes and hashes. Sampling replay regenerates the plan from the
@@ -45,7 +46,7 @@ missing output files.
 
 Verification rejects files absent from the artifact inventory, including hidden
 files, and rejects symbolic links and other non-regular entries. Only the manifest,
-records ledger, failure ledger, and declared outputs are allowed. Empty directories
+records ledger, failure ledger, attempt ledger, and declared outputs are allowed. Empty directories
 are ignored. Keep auxiliary material outside the dataset root. The explicit
 `--allow-extra-files` option retains listed-artifact verification without directory
 completeness or link checks; it never permits missing or changed declared artifacts.

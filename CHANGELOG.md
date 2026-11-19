@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## Unreleased (0.2.0.dev0)
+
+- Manifest schema `vst-bench-ml.provenance/v2`: every planned render attempt now
+  has exactly one outcome in a new bound `attempts.jsonl` ledger (kept, dropped,
+  failed or not attempted). Verification derives the expected attempt IDs from the
+  manifest, recomputes the sampling-plan digest from the ledger, and matches each
+  row against the records, drop/failure events and output identities. Missing,
+  duplicate, unplanned and conflicting attempts are rejected, and an interrupted
+  run cannot verify as complete.
+- `verify --host-trace FILE` compares the ledger with an attempt trace written by
+  the host outside the dataset, including the hash of the audio the host wrote.
+- Schema v1 datasets from 0.1.x still verify; the verifier states that they
+  carry no per-attempt outcomes.
 
 - Reject unlisted dataset files, symbolic links, and non-regular entries during
   verification by default; add an explicit `--allow-extra-files` opt-out.
