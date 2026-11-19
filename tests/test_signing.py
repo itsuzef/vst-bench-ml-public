@@ -30,7 +30,7 @@ def signed(tmp_path, monkeypatch):
     trust.mkdir()
     key = make_key(trust, "producer")
     allowed = trust / "allowed_signers"
-    allowed.write_text(f"producer@example.org {key.with_suffix('.pub').read_text()}")
+    allowed.write_text(f"producer@example.org {key.with_suffix('.pub').read_text(encoding="utf-8")}")
     cli.main(["sign", "--manifest", str(dataset / "manifest.json"), "--key", str(key)])
     return dataset, trust, allowed
 
@@ -41,7 +41,7 @@ def check(dataset, *options):
 
 def test_authentic_signature_verifies_and_names_the_signer(signed, capsys):
     dataset, _, allowed = signed
-    assert (dataset / "manifest.json.sig").read_text().startswith("-----BEGIN SSH SIGNATURE-----")
+    assert (dataset / "manifest.json.sig").read_text(encoding="utf-8").startswith("-----BEGIN SSH SIGNATURE-----")
     check(dataset, "--allowed-signers", allowed)
     assert "signature: valid, signed by producer@example.org" in capsys.readouterr().out
     check(dataset, "--allowed-signers", allowed, "--signer", "producer@example.org")
@@ -63,11 +63,11 @@ def test_fully_resealed_dataset_passes_the_digest_but_not_the_signature(signed, 
     output.write_bytes(output.read_bytes() + b"x")
     # Recompute every hash that binds the changed file, then reseal the manifest.
     identity = provenance.file_identity(output, dataset)
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
 
     def rebind(name):
         path = dataset / name
-        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
         for row in rows:
             if (row.get("output") or {}).get("path") == identity["path"]:
                 row["output"] = identity
@@ -174,7 +174,7 @@ def test_empty_trust_value_fails_instead_of_skipping_the_check(signed, option):
 def test_key_listed_under_two_identities_needs_the_signer_named(signed):
     # ssh-keygen reports only the first identity of a key, here one limited to another namespace.
     dataset, trust, allowed = signed
-    key = (trust / "producer.pub").read_text()
+    key = (trust / "producer.pub").read_text(encoding="utf-8")
     allowed.write_text(f'other@example.org namespaces="file" {key}producer@example.org {key}')
     with pytest.raises(SystemExit, match="name it with --signer"):
         check(dataset, "--allowed-signers", allowed)

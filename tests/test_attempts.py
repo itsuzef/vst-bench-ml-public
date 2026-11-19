@@ -182,7 +182,7 @@ def test_host_trace_of_an_interrupted_run(tmp_path, monkeypatch):
 
 def test_historical_v1_dataset_still_verifies_and_states_the_gap(tmp_path, monkeypatch, capsys):
     dataset, _ = render(tmp_path, monkeypatch)
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
     manifest["schema"] = provenance.SCHEMA_V1  # what 0.1.x wrote: no ledger, no counts
     del manifest["attempts"], manifest["artifacts"]["attempt_ledger"]
     (dataset / attempts.LEDGER_NAME).unlink()
@@ -199,7 +199,7 @@ def test_historical_v1_dataset_still_verifies_and_states_the_gap(tmp_path, monke
 
 
 def edit_manifest(dataset, change):
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
     change(manifest)
     provenance.write_manifest(dataset / "manifest.json", manifest)
 
@@ -210,8 +210,8 @@ def test_record_outside_the_plan_is_rejected(tmp_path, monkeypatch):
     extra.write_bytes(b"smuggled")
     identity = provenance.file_identity(extra, dataset)
     records = dataset / "records.jsonl"
-    first = json.loads(records.read_text().splitlines()[0])
-    records.write_text(records.read_text() + json.dumps(
+    first = json.loads(records.read_text(encoding="utf-8").splitlines()[0])
+    records.write_text(records.read_text(encoding="utf-8") + json.dumps(
         {**first, "patch_id": "p999999", "audio_path": identity["path"], "output": identity}) + "\n")
 
     def change(manifest):
@@ -251,7 +251,7 @@ def test_no_outcome_may_follow_the_failure_that_ended_the_run(tmp_path, monkeypa
     # Move the failure before the drop: the drop then follows the end of the run.
     rows[0], rows[1] = ({**rows[1], "index": 0, "attempt_id": rows[0]["attempt_id"], "signal": rows[0]["signal"]},
                         {**rows[0], "index": 1, "attempt_id": rows[1]["attempt_id"], "signal": rows[1]["signal"]})
-    events = [json.loads(line) for line in (dataset / "failures.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (dataset / "failures.jsonl").read_text(encoding="utf-8").splitlines()]
     events[0]["signal"], events[1]["signal"] = events[1]["signal"], events[0]["signal"]
     (dataset / "failures.jsonl").write_text("".join(json.dumps(event, sort_keys=True) + "\n" for event in events))
     edit_manifest(dataset, lambda manifest: manifest["artifacts"].update(
@@ -264,7 +264,7 @@ def test_no_outcome_may_follow_the_failure_that_ended_the_run(tmp_path, monkeypa
 def test_output_must_be_the_attempts_own_file(tmp_path, monkeypatch):
     dataset, _ = render(tmp_path, monkeypatch, arguments=("--n", "2"))
     records = dataset / "records.jsonl"
-    lines = [json.loads(line) for line in records.read_text().splitlines()]
+    lines = [json.loads(line) for line in records.read_text(encoding="utf-8").splitlines()]
     lines[1]["output"] = lines[0]["output"]  # second attempt claims the first attempt's audio
     lines[1]["audio_path"] = lines[0]["output"]["path"]
     records.write_text("".join(json.dumps(line, sort_keys=True) + "\n" for line in lines))

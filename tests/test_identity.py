@@ -134,7 +134,7 @@ def test_edited_identity_section_is_rejected_after_resealing(tmp_path, monkeypat
     digest = identity.path_digest(plugin_file(tmp_path))
     expected = expected_file(tmp_path, plugin={"sha256": digest})
     dataset, _ = render(tmp_path, monkeypatch, arguments=("--n", "1", "--expect-identities", str(expected)))
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
     manifest["identity_checks"]["package_observed"]["plugin_sha256"] = "0" * 64
     manifest["identity_checks"]["package_observed"]["plugin_sha256_after"] = "0" * 64
     provenance.write_manifest(dataset / "manifest.json", manifest)

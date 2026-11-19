@@ -91,14 +91,14 @@ def render(tmp_path, monkeypatch, *, silent=(), fail_at=None, fail_parameters_at
 
 
 def rows_of(dataset):
-    return [json.loads(line) for line in (dataset / attempts.LEDGER_NAME).read_text().splitlines()]
+    return [json.loads(line) for line in (dataset / attempts.LEDGER_NAME).read_text(encoding="utf-8").splitlines()]
 
 
 def reseal(dataset, rows, **changes):
     """Rewrite the ledger and reseal the manifest coherently, as a careful editor could."""
     ledger = dataset / attempts.LEDGER_NAME
     ledger.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows))
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
     manifest["artifacts"]["attempt_ledger"] = provenance.file_identity(ledger, dataset)
     manifest["attempts"] = attempts.counts(rows)
     for key, value in changes.items():

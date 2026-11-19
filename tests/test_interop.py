@@ -15,8 +15,8 @@ from .scripted_host import render, rows_of
 def export(tmp_path, dataset):
     crate, prov = tmp_path / "crate", tmp_path / "prov.json"
     cli.main(["export", "--manifest", str(dataset / "manifest.json"), "--ro-crate", str(crate), "--prov", str(prov)])
-    graph = {node["@id"]: node for node in json.loads((crate / "ro-crate-metadata.json").read_text())["@graph"]}
-    return crate, graph, json.loads(prov.read_text())
+    graph = {node["@id"]: node for node in json.loads((crate / "ro-crate-metadata.json").read_text(encoding="utf-8"))["@graph"]}
+    return crate, graph, json.loads(prov.read_text(encoding="utf-8"))
 
 
 def relations(document, kind, left, right):
@@ -25,7 +25,7 @@ def relations(document, kind, left, right):
 
 def test_crate_files_and_actions_agree_with_the_source_records(tmp_path, monkeypatch):
     dataset, _ = render(tmp_path, monkeypatch, silent={"p000001_gate_c2"})
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
     crate, graph, _ = export(tmp_path, dataset)
 
     provenance.verify_manifest(crate / "dataset" / "manifest.json")  # the copy is still sealed
@@ -57,7 +57,7 @@ def test_crate_files_and_actions_agree_with_the_source_records(tmp_path, monkeyp
 
 def test_prov_relations_agree_with_the_source_records(tmp_path, monkeypatch):
     dataset, _ = render(tmp_path, monkeypatch, fail_at=3, silent={"p000000_gate_c2"})
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
     rows = rows_of(dataset)
     assert [row["disposition"] for row in rows] == ["kept", "dropped", "kept", "failed", "not_attempted", "not_attempted"]
     _, _, document = export(tmp_path, dataset)
@@ -104,7 +104,7 @@ def test_unknowns_and_reported_values_are_labelled_not_invented(tmp_path, monkey
 
 def test_v1_dataset_exports_kept_renders_only_and_says_so(tmp_path, monkeypatch):
     dataset, _ = render(tmp_path, monkeypatch, silent={"p000000_gate_c2"})
-    manifest = json.loads((dataset / "manifest.json").read_text())
+    manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
     manifest["schema"] = provenance.SCHEMA_V1
     del manifest["attempts"], manifest["artifacts"]["attempt_ledger"], manifest["identity_checks"]
     (dataset / "attempts.jsonl").unlink()
