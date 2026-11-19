@@ -11,6 +11,12 @@
   run cannot verify as complete.
 - `verify --host-trace FILE` compares the ledger with an attempt trace written by
   the host outside the dataset, including the hash of the audio the host wrote.
+- Identity checks, bound into v2 manifests: the package hashes the plugin path
+  itself before and after the run and compares it with the host's report when the
+  host states the same digest algorithm. `render --host-executable PATH` does the
+  same for the host file, and `--expect-identities FILE` (on `render` and `verify`)
+  compares both with independently obtained values. A mismatch stops the render
+  before any audio is requested. `identify PATH` prints the digest of a plugin.
 - Schema v1 datasets from 0.1.x still verify; the verifier states that they
   carry no per-attempt outcomes.
 

@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA_V1 = "vst-bench-ml.provenance/v1"
-SCHEMA = "vst-bench-ml.provenance/v2"  # adds the attempt ledger (attempts.py)
+SCHEMA = "vst-bench-ml.provenance/v2"  # adds the attempt ledger and identity checks
 SUPPORTED_SCHEMAS = (SCHEMA_V1, SCHEMA)
 RUNTIME_DEPENDENCIES = ("numpy", "soundfile", "pyloudnorm", "scipy")
 DISTRIBUTED_MODULES = (
@@ -26,6 +26,7 @@ DISTRIBUTED_MODULES = (
     "cli.py",
     "client.py",
     "export.py",
+    "identity.py",
     "introspect.py",
     "midi_signals.py",
     "provenance.py",
@@ -336,6 +337,7 @@ def validate_manifest(manifest: dict) -> None:
     bound = ["records", "failure_ledger"]
     if manifest["schema"] != SCHEMA_V1:
         bound.append("attempt_ledger")
+        _require_mapping(manifest, "identity_checks", "manifest")
         declared = _require_mapping(manifest, "attempts", "manifest")
         for key in ("planned", "kept", "dropped", "failed", "not_attempted"):
             if not isinstance(declared.get(key), int) or declared[key] < 0:
@@ -456,9 +458,14 @@ def verify_manifest(
     *,
     allow_extra_files: bool = False,
     host_trace: str | Path | None = None,
+    expected_identities: str | Path | None = None,
 ) -> dict:
-    """Verify a sealed dataset. ``host_trace`` is a host-written attempt trace
-    kept outside the dataset; it is compared with the attempt ledger (v2)."""
+    """Verify a sealed dataset.
+
+    ``host_trace`` is a host-written attempt trace kept outside the dataset; it
+    is compared with the attempt ledger. ``expected_identities`` is a file of
+    independently obtained host/plugin identities. Both need a v2 manifest.
+    """
     manifest_path = Path(path)
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -519,8 +526,15 @@ def verify_manifest(
     if manifest["schema"] == SCHEMA_V1:
         if host_trace is not None:
             raise IntegrityError("a v1 manifest has no attempt ledger to compare with a host trace")
+        if expected_identities is not None:
+            raise IntegrityError("a v1 manifest has no package-observed identities to compare")
         return manifest
-    from . import attempts
+    from . import attempts, identity
+
+    identity.verify_recorded(
+        manifest,
+        identity.load_expected(expected_identities) if expected_identities is not None else None,
+    )
 
     rows = _read_jsonl(_verify_artifact(root, artifacts["attempt_ledger"]), "attempt ledger")
     attempts.verify_ledger(manifest, rows, records, events)

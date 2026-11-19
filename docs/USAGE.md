@@ -21,6 +21,8 @@ the documented identity, reset, readback, and render protocol.
 | `--seed-label` | Text used to derive the parameter sampling seed | run |
 | `--exclude-groups` | Comma-separated parameter groups to leave unvaried | Empty |
 | `--keep-bad` | Retain samples flagged silent or clipped | Off |
+| `--expect-identities` | JSON file of expected host/plugin identities; refuse to render on mismatch | None |
+| `--host-executable` | Host file you started; its hash must equal the host's report | None |
 
 List available MIDI names with:
 
@@ -98,7 +100,39 @@ have a failed line or none, since a host can die before writing it. The companio
 writes such a trace with `--attempt-trace`. The trace is only as trustworthy as the
 host and the place it was kept.
 
-Datasets written by 0.1.x use schema v1 and have no attempt ledger. They verify as
+### Identity checks
+
+The host reports its own identity and the plugin's. The package adds what it can
+see for itself: it hashes the plugin path before and after the run, and if the host
+states the same digest algorithm (`sha256_algorithm`), the two values must agree. A
+plugin that changes during the run marks the run failed.
+
+To compare against values obtained elsewhere, write an expected-identities file:
+
+```json
+{"schema": "vst-bench-ml.expected-identities/v1",
+ "plugin": {"sha256": "<digest>", "identifier": "<id>", "version": "<version>"},
+ "host": {"executable_sha256": "<sha256>", "source_commit": "<commit>"}}
+```
+
+Every field is optional, but the file must name at least one. Allowed plugin fields
+are `sha256`, `identifier`, `name`, `vendor`, `version`, `format`; host fields are
+`executable_sha256`, `source_repository`, `source_commit`, `build_configuration`,
+`protocol_version`. Get a plugin digest with `vst-bench-ml identify /path/to/plugin`
+on a copy you trust, and a host file hash with any SHA-256 tool. Then either
+
+```sh
+vst-bench-ml render ... --expect-identities expected.json --host-executable /path/to/host
+vst-bench-ml verify --manifest output/manifest.json --expect-identities expected.json
+```
+
+`render` refuses to start on any mismatch and records the comparison in the
+manifest; `verify` repeats it later against the recorded values. The verify output
+ends with an `identities:` line saying what was compared and against what. Without
+an expected file that line says the host-reported values are otherwise unchecked.
+See [DESIGN.md](DESIGN.md#what-the-identity-checks-establish) for the limits.
+
+Datasets written by 0.1.x use schema v1 and have no attempt ledger or identity checks. They verify as
 before, and the attempts line says so: a v1 dataset accounts for kept outputs and
 recorded events, but a planned attempt with neither would go unnoticed.
 

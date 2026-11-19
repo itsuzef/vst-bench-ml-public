@@ -249,7 +249,7 @@ def verify_ledger(
     status = manifest["observation"]["status"]
     unfinished = declared["failed"] + declared["not_attempted"]
     _require(
-        status in {"completed", "failed"} and (status == "completed") == (unfinished == 0),
+        status == "failed" or (status == "completed" and unfinished == 0),
         f"run status '{status}' contradicts {unfinished} unfinished attempts",
     )
 

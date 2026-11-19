@@ -162,6 +162,7 @@ def test_verify_detects_output_corruption(tmp_path):
 
 def test_render_writes_complete_verifiable_provenance(tmp_path, monkeypatch):
     plugin = tmp_path / "example.vst3"
+    plugin.write_bytes(b"plugin")
     parameter_manifest = Path(__file__).parent / "fixtures" / "parameter-manifest.json"
     output = tmp_path / "dataset"
 
@@ -298,6 +299,7 @@ def test_interrupted_render_writes_verifiable_failed_manifest(tmp_path, monkeypa
             raise KeyboardInterrupt
 
     monkeypatch.setattr(cli, "TestHostClient", Host)
+    (tmp_path / "example.vst3").write_bytes(b"plugin")
     with pytest.raises(KeyboardInterrupt):
         cli.main(
             [

@@ -42,6 +42,24 @@ and parameter specs. Replay is asserted only for that recorded dependency
 stack. Failures and quality drops are evidence and are never inferred from
 missing output files.
 
+## What the identity checks establish
+
+Three sources describe the host and plugin. The host reports both. The package
+hashes the plugin path, and the host file if `--host-executable` names it. The user
+may supply expected values obtained elsewhere. The manifest records every
+comparison made and which two sources agreed.
+
+A match shows that the files at those paths had the expected content when the
+package read them, before and after the run, and that the host's report was
+consistent with them. It does not show that the process answering on the port was
+started from that host file, or that it loaded those plugin bytes rather than a
+copy elsewhere. The package talks to the host over localhost and cannot inspect the
+process. Fields other than the two hashes (name, vendor, version, commit) are only
+ever the host's word compared with the expected word.
+
+These checks concern execution. They are separate from the manifest digest, which
+shows the dataset is internally consistent. Neither says who produced the dataset.
+
 ## Dataset file inventory
 
 Verification rejects files absent from the artifact inventory, including hidden

@@ -12,7 +12,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from . import attempts, batch, export, introspect, provenance, quality, sampling, seeding
+from . import attempts, batch, export, identity, introspect, provenance, quality, sampling, seeding
 from .client import TestHostClient, TestHostError
 from .midi_signals import signal_names
 
@@ -100,17 +100,24 @@ def cmd_render(args: argparse.Namespace) -> None:
 
     client = TestHostClient(port=args.port)
     try:
-        identity = client.ensure_plugin(args.plugin)
+        reported = client.ensure_plugin(args.plugin)
     except (OSError, TestHostError) as exc:
         raise SystemExit(str(exc)) from exc
-    if parameter_identity["plugin"] != identity["plugin_identifier"]:
+    if parameter_identity["plugin"] != reported["plugin_identifier"]:
         raise SystemExit(
             "parameter manifest plugin does not match loaded plugin: "
-            f"{parameter_identity['plugin']} != {identity['plugin_identifier']}"
+            f"{parameter_identity['plugin']} != {reported['plugin_identifier']}"
         )
+    # Fail closed before rendering if the files are not the ones expected.
+    try:
+        expected = identity.load_expected(args.expect_identities) if args.expect_identities else None
+        observed = identity.observe(args.plugin, args.host_executable)
+        comparisons = identity.compare(expected, reported["host"], reported["plugin"], observed)
+    except provenance.IntegrityError as exc:
+        raise SystemExit(str(exc)) from exc
 
     seed = seeding.master_from_label(args.seed_label)
-    rng = seeding.patch_rng(seed, identity["plugin_identifier"], "plan", 0)
+    rng = seeding.patch_rng(seed, reported["plugin_identifier"], "plan", 0)
     plan = sampling.plan(specs, args.n, rng)
     plan_identity = provenance.sampling_plan_identity(plan)
     out = Path(args.out)
@@ -159,6 +166,12 @@ def cmd_render(args: argparse.Namespace) -> None:
         except (Exception, KeyboardInterrupt) as exc:
             caught = exc
 
+    try:
+        observed["plugin_sha256_after"] = identity.path_digest(args.plugin)
+    except provenance.IntegrityError:
+        observed["plugin_sha256_after"] = None
+    if caught is None and observed["plugin_sha256_after"] != observed["plugin_sha256"]:
+        caught = provenance.IntegrityError("plugin files changed during the run")
     dropped = sum(event["status"] == "drop" for event in events)
     failures = sum(event["status"] == "failure" for event in events)
     outputs = [record["output"] for record in records]
@@ -175,8 +188,8 @@ def cmd_render(args: argparse.Namespace) -> None:
         },
         "identities": {
             "package": provenance.package_identity(),
-            "host": identity["host"],
-            "plugin": identity["plugin"],
+            "host": reported["host"],
+            "plugin": reported["plugin"],
             "parameters": parameter_identity,
             "environment": provenance.environment_identity(),
             "dependencies": provenance.dependency_identity(),
@@ -185,7 +198,7 @@ def cmd_render(args: argparse.Namespace) -> None:
                 "seed_derivation": "vst_bench_ml.seeding.patch_rng/v1",
                 "master_seed": seed,
                 "seed_label": args.seed_label,
-                "plugin_identifier": identity["plugin_identifier"],
+                "plugin_identifier": reported["plugin_identifier"],
                 "stage": "plan",
                 "stream_index": 0,
                 "requested_patches": args.n,
@@ -209,6 +222,7 @@ def cmd_render(args: argparse.Namespace) -> None:
             "failures": failures,
         },
         "attempts": attempts.counts(rows),
+        "identity_checks": identity.record(expected, observed, comparisons),
         "artifacts": {
             "records": provenance.file_identity(records_path, out),
             "failure_ledger": provenance.file_identity(ledger_path, out),
@@ -234,6 +248,7 @@ def cmd_verify(args: argparse.Namespace) -> None:
             args.manifest,
             allow_extra_files=args.allow_extra_files,
             host_trace=args.host_trace,
+            expected_identities=args.expect_identities,
         )
     except provenance.IntegrityError as exc:
         raise SystemExit(str(exc)) from exc
@@ -253,6 +268,19 @@ def cmd_verify(args: argparse.Namespace) -> None:
             f"{planned['kept']} kept, {planned['dropped']} dropped, {planned['failed']} failed, "
             f"{planned['not_attempted']} not attempted{trace}"
         )
+        checks = manifest["identity_checks"]
+        compared = ", ".join(sorted({item["subject"] for item in checks["comparisons"]})) or "nothing"
+        against = ("expected identities given now" if args.expect_identities
+                   else "expected identities given at render time" if checks["expected"]
+                   else "no expected identities; host-reported values are otherwise unchecked")
+        print(f"identities: compared {compared} ({against})")
+
+
+def cmd_identify(args: argparse.Namespace) -> None:
+    try:
+        print(f"{identity.path_digest(args.path)}  {identity.PATH_DIGEST}  {args.path}")
+    except provenance.IntegrityError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -272,6 +300,10 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--seed-label", default="run")
     render.add_argument("--exclude-groups", default="")
     render.add_argument("--keep-bad", action="store_true")
+    render.add_argument("--expect-identities",
+                        help="JSON file of independently obtained host/plugin identities; refuse to render on mismatch")
+    render.add_argument("--host-executable",
+                        help="path of the host executable you started; its hash must equal the host's own report")
     render.set_defaults(func=cmd_render)
 
     verify = sub.add_parser(
@@ -283,7 +315,16 @@ def build_parser() -> argparse.ArgumentParser:
                         help="check listed artifacts only; skip directory inventory and link checks")
     verify.add_argument("--host-trace",
                         help="host-written attempt trace kept outside the dataset; compare it with the attempt ledger")
+    verify.add_argument("--expect-identities",
+                        help="JSON file of independently obtained host/plugin identities to compare with the manifest")
     verify.set_defaults(func=cmd_verify)
+
+    identify = sub.add_parser(
+        "identify", help="print the digest of a plugin file or bundle",
+        description="Print the package's digest of a plugin path, for an expected-identities file.",
+    )
+    identify.add_argument("path")
+    identify.set_defaults(func=cmd_identify)
     return parser
 
 
