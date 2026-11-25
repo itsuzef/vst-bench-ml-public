@@ -23,10 +23,10 @@ the historical lock. Require its results as well as locked validation before
 publishing the compatibility revision. Preserve the original lockfile and release
 tags; choose a new release version rather than replacing the published 0.1.1 files.
 
-Version 0.2.0 writes schema v2 manifests. The companion's exact-hash fixture
-conformance reads schema v1 and stays pinned to the 0.1.1 package identity, so
-0.2.0 was released on the compatibility matrix, the locked-environment tests and
-native fixture, Vital and u-he runs checked by the core verifier.
+Version 0.2.0 writes schema v2 manifests. It was published on the compatibility
+matrix, the locked-environment tests and native runs checked by the core verifier.
+Companion 0.2.1 then extended the exact-hash fixture conformance to schema v2;
+it passes on the published 0.2.0 wheel and reproduces the 0.1.1 audio hashes.
 
 The `publish.yml` GitHub Actions workflow uses PyPI Trusted Publishing. Configure
 a pending publisher for project `vst-bench-ml`, owner `itsuzef`, repository
