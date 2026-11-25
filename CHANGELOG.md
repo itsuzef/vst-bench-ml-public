@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.2.0.dev0)
+## 0.2.0
 
 - Manifest schema `vst-bench-ml.provenance/v2`: every planned render attempt now
   has exactly one outcome in a new bound `attempts.jsonl` ledger (kept, dropped,

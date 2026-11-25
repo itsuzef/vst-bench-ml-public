@@ -8,7 +8,7 @@ python -m pip install --require-hashes -r requirements/lock.txt
 python -m pip install build twine
 python -m build --no-isolation --outdir ../dist
 python -m twine check ../dist/*
-python -m pip install --no-deps ../dist/vst_bench_ml-0.1.1-py3-none-any.whl
+python -m pip install --no-deps ../dist/vst_bench_ml-*.whl
 python -B -m pytest -p no:cacheprovider -q
 python -m ruff check --no-cache src scripts tests
 ```
@@ -22,6 +22,11 @@ The ordinary-install compatibility matrix resolves compatible dependencies witho
 the historical lock. Require its results as well as locked validation before
 publishing the compatibility revision. Preserve the original lockfile and release
 tags; choose a new release version rather than replacing the published 0.1.1 files.
+
+Version 0.2.0 writes schema v2 manifests. The companion's exact-hash fixture
+conformance reads schema v1 and stays pinned to the 0.1.1 package identity, so
+0.2.0 was released on the compatibility matrix, the locked-environment tests and
+native fixture, Vital and u-he runs checked by the core verifier.
 
 The `publish.yml` GitHub Actions workflow uses PyPI Trusted Publishing. Configure
 a pending publisher for project `vst-bench-ml`, owner `itsuzef`, repository

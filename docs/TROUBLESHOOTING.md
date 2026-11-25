@@ -3,8 +3,8 @@
 | Symptom | Action |
 | --- | --- |
 | `vst-bench-ml: command not found` | Activate the environment used by pip; try `python -m vst_bench_ml.cli --help`. |
-| Pip cannot find version 0.1.1 | Check the package name and index configuration; alternatively use `python -m pip install .` from the checkout. |
-| NumPy or SciPy cannot install, or pip attempts a source build | For ordinary use, install the revised package with compatible dependencies without the historical lockfile. Published 0.1.1 retains its original pins. For exact historical reproduction, use its matching Python 3.12 environment. Upgrade pip and record the complete error, Python version, and architecture. See [installation troubleshooting](INSTALL.md#installation-troubleshooting). |
+| Pip cannot find the requested version | Check the package name and index configuration; alternatively use `python -m pip install .` from the checkout. |
+| NumPy or SciPy cannot install, or pip attempts a source build | For ordinary use, install version 0.2.0 or later, which allows compatible dependencies, without the historical lockfile. Version 0.1.1 retains its original pins. For exact historical reproduction, use its matching Python 3.12 environment. Upgrade pip and record the complete error, Python version, and architecture. See [installation troubleshooting](INSTALL.md#installation-troubleshooting). |
 | Connection refused | Start the companion host; match its port to `render --port`. |
 | Plugin already loaded | Restart the host before another render. |
 | Plugin identity mismatch | Use the parameter manifest for that exact plugin. The revised companion supports Method Fixture and the narrow macOS [Vital Volume profile](https://github.com/itsuzef/vst-bench-dataset-host-public/blob/7a24c962cd67e90765fa1ae5d12be275df4405ae/docs/VITAL.md); other instruments/controls require validation. |

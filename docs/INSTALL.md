@@ -27,10 +27,8 @@ py -3 -m venv .venv
 .\.venv\Scripts\vst-bench-ml.exe --help
 ```
 
-The unreleased compatibility changes apply to a revised source checkout; the
-published 0.1.1 distribution retains its original dependency pins. To exercise the
-revised dependencies before a new release, install the revised checkout using
-`python -m pip install .`, rather than installing 0.1.1 from PyPI.
+The compatibility changes are in version 0.2.0 and later. The published 0.1.1
+distribution retains its original dependency pins.
 
 Ordinary installation allows compatible versions of NumPy, SoundFile, and
 pyloudnorm; pip selects versions compatible with the interpreter and platform.

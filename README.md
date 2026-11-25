@@ -17,8 +17,8 @@ vst-bench-ml --help
 
 Alternatively, install a source checkout with `python -m pip install .`.
 
-The unreleased source allows compatible dependency versions; published 0.1.1
-retains its original pins until a new release is published. CI targets ordinary
+Version 0.2.0 allows compatible dependency versions; version 0.1.1 retains its
+original pins. CI targets ordinary
 wheel installation and package tests on Windows, Linux, and macOS (arm64 and
 Intel), across CPython 3.11–3.15. Native rendering and exact output-hash reproduction
 have separate validation requirements. See the [installation guide](docs/INSTALL.md)
